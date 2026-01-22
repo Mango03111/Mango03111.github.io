@@ -18,6 +18,12 @@
       </categories>
       
       
+        <tags>
+            
+            <tag> md </tag>
+            
+        </tags>
+      
     </entry>
     
     
@@ -26,7 +32,7 @@
     
     
     <entry>
-      <title>/about</title>
+      <title>关于此网站</title>
       <link href="/about/index.html"/>
       <url>/about/index.html</url>
       
@@ -48,11 +54,11 @@
     
     
     <entry>
-      <title>tags</title>
+      <title>标签</title>
       <link href="/tags/index.html"/>
       <url>/tags/index.html</url>
       
-        <content type="html"><![CDATA[]]></content>
+        <content type="html"><![CDATA[<ul><li>md</li></ul>]]></content>
       
     </entry>
     
