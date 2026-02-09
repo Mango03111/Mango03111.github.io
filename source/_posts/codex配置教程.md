@@ -1,5 +1,5 @@
 ---
-title: Codex CLI 安装与 VS Code 插件使用教程
+title: 【教程】Codex CLI 安装与 VS Code 插件使用教程
 Author: Mango
 tags:
   - AI

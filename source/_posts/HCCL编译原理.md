@@ -3,6 +3,7 @@ title: 华为昇腾HCCL算法注册与执行机制概述
 Author: Mango
 tags:
   - AI
+  - Code
 categories:
   - 计算机网络
 abbrlink: "58974538"

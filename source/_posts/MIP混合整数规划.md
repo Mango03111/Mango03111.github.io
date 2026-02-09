@@ -3,6 +3,7 @@ title: '【算法笔记】混合整数规划（MIP, mixed integer programming）
 Author: Mango
 tags:
   - Algorithm
+  - Code
 categories:
   - 算法
 abbrlink: 82fbdb
