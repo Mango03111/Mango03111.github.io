@@ -4,6 +4,31 @@
   
     
     <entry>
+      <title>Codex CLI 安装与 VS Code 插件使用教程</title>
+      <link href="/posts/9975aeb1.html"/>
+      <url>/posts/9975aeb1.html</url>
+      
+        <content type="html"><![CDATA[<p><strong>Codex</strong> 是 OpenAI 推出的新一代 <strong>AI 编程智能体（Coding Agent）</strong>，它不只是“会写代码的 ChatGPT”，而是一个<strong>可以直接参与你真实开发流程的工具</strong>。与传统在网页里对话的 ChatGPT 不同，Codex 被设计为：</p><ul><li><strong>运行在本地开发环境中</strong></li><li><strong>理解你的项目结构</strong></li><li><strong>能操作文件、执行命令、修改代码</strong></li></ul><p><strong>那Codex 和 ChatGPT 写代码有什么本质区别？</strong></p><p>很多人第一反应是：</p><blockquote><p>“我用 ChatGPT 写代码也挺好，为什么还要 Codex？”</p></blockquote><p>关键差别在于 <strong>上下文深度和执行能力</strong>。</p><table><thead><tr><th>维度</th><th>ChatGPT（网页）</th><th>Codex</th></tr></thead><tbody><tr><td>项目上下文</td><td>仅靠复制粘贴</td><td>自动理解整个代码仓库</td></tr><tr><td>文件操作</td><td>不能直接改文件</td><td>可新建 &#x2F; 修改 &#x2F; 删除文件</td></tr><tr><td>命令执行</td><td>只能给你命令</td><td>可直接执行命令</td></tr><tr><td>多步骤任务</td><td>需要你手动拆解</td><td>可自动规划并执行</td></tr><tr><td>开发位置</td><td>浏览器</td><td>终端 &#x2F; VS Code &#x2F; Cursor</td></tr></tbody></table><p><strong>Codex CLI</strong> 是 OpenAI 提供的一款在终端中运行的 AI 代码助手工具，结合 ChatGPT 的能力，可在命令行和 IDE 中以自然语言生成、审查、重构代码。本文整理了国内环境下的安装前置条件、Codex CLI 安装步骤以及 VS Code 插件安装方法，帮助你快速上手。</p><hr><h2 id="🧠-前置条件"><a href="#🧠-前置条件" class="headerlink" title="🧠 前置条件"></a>🧠 前置条件</h2><p>在开始安装之前，请确保满足以下基本条件：</p><ol><li><strong>ChatGPT Plus &#x2F; Pro &#x2F; Team 会员</strong><br>Codex 目前仅对 ChatGPT 的付费订阅用户开放，免费账户无法使用。这里推荐大家去海鲜市场按月购入team会员（价格在10-20元不等），不过要注意的是，为了防止商家跑路，最好不要一次性购入很长时间的会员。</li><li><strong>科学上网环境</strong><br>国内访问 ChatGPT 及相关服务时，需要能够访问被墙外服务。这个不做推荐，大家自行寻找。</li><li><strong>Node.js 环境（用于 CLI）</strong><br>Codex CLI 基于 Node.js 运行，需要 <strong>Node.js 22+</strong> 版本环境。后文会详细说明安装方法。</li></ol><hr><h2 id="🚀-Codex-CLI-安装步骤"><a href="#🚀-Codex-CLI-安装步骤" class="headerlink" title="🚀 Codex CLI 安装步骤"></a>🚀 Codex CLI 安装步骤</h2><h3 id="1-检查-Node-js-是否已安装"><a href="#1-检查-Node-js-是否已安装" class="headerlink" title="1. 检查 Node.js 是否已安装"></a>1. 检查 Node.js 是否已安装</h3><p>打开终端（macOS &#x2F; Linux &#x2F; Windows PowerShell），执行：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">node -v</span><br></pre></td></tr></table></figure><p>若返回版本号 <strong>≥ 22</strong>，则可跳过安装节点。</p><hr><h3 id="2-安装-Node-js（如未安装）"><a href="#2-安装-Node-js（如未安装）" class="headerlink" title="2. 安装 Node.js（如未安装）"></a>2. 安装 Node.js（如未安装）</h3><p>前往 <strong>Node.js 官网</strong> 下载并安装最新版（推荐使用 LTS 或最新 22+ 版本）：</p><p>🔗 Node.js 官网：<a href="https://nodejs.org/zh-cn/">https://nodejs.org/zh-cn/</a> </p><p>安装后重新打开终端，再次执行 <code>node -v</code> 确认版本。</p><hr><h3 id="3-安装-Codex-CLI"><a href="#3-安装-Codex-CLI" class="headerlink" title="3. 安装 Codex CLI"></a>3. 安装 Codex CLI</h3><h4 id="🐧-macOS-Linux"><a href="#🐧-macOS-Linux" class="headerlink" title="🐧 macOS &#x2F; Linux"></a>🐧 macOS &#x2F; Linux</h4><p>使用 npm 全局安装：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install -g @openai/codex@latest</span><br></pre></td></tr></table></figure><blockquote><p>若国内网络较慢，可使用国内镜像加速：</p></blockquote><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install -g @openai/codex@latest --registry=https://registry.npmmirror.com</span><br></pre></td></tr></table></figure><p>也可以通过 Homebrew 安装：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">brew install codex</span><br><span class="line">``` :contentReference[oaicite:8]&#123;index=8&#125;</span><br></pre></td></tr></table></figure><p>验证安装：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">codex --version</span><br></pre></td></tr></table></figure><p>若输出版本号，则说明安装成功。</p><h4 id="🪟-windows"><a href="#🪟-windows" class="headerlink" title="🪟 windows"></a>🪟 windows</h4><p>Windows 用户同样可以正常使用 Codex CLI，推荐使用 <strong>PowerShell</strong>。</p><ul><li>在开始菜单中搜索 <strong>PowerShell</strong></li><li>右键选择 <strong>“以管理员身份运行”</strong></li></ul><p>执行以下命令：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install -g @openai/codex@latest</span><br></pre></td></tr></table></figure><p>如果遇到下载慢或卡住的问题，建议使用国内 npm 镜像：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">npm install -g @openai/codex@latest --registry=https://registry.npmmirror.com</span><br></pre></td></tr></table></figure><p>验证安装，在 PowerShell 中执行：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">codex --version</span><br></pre></td></tr></table></figure><p><img src="/posts/9975aeb1/image-20260205122856394.png" alt="image-20260205122856394"></p><p>如果能正确输出版本号，说明 Codex CLI 已成功安装。</p><hr><h2 id="🔐-Codex-CLI-登录授权"><a href="#🔐-Codex-CLI-登录授权" class="headerlink" title="🔐 Codex CLI 登录授权"></a>🔐 Codex CLI 登录授权</h2><p>Codex CLI 需要登录授权才能使用。支持两种方式：</p><h3 id="🔹-方式-1-—-使用-ChatGPT-官方账号登录（推荐）"><a href="#🔹-方式-1-—-使用-ChatGPT-官方账号登录（推荐）" class="headerlink" title="🔹 方式 1 — 使用 ChatGPT 官方账号登录（推荐）"></a>🔹 方式 1 — 使用 ChatGPT 官方账号登录（推荐）</h3><p>终端执行：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">codex</span><br></pre></td></tr></table></figure><p><img src="/posts/9975aeb1/image-20260205123004216.png" alt="image-20260205123004216"></p><p>首次运行时会弹出链接或二维码（我这里已经登陆过了），让你在浏览器中登录你的 ChatGPT 账号并授权。登录成功后，即可在终端直接使用。授权信息会自动保存，下次无需重复登录。</p><hr><h3 id="🔹-方式-2-—-使用-API-Key（第三方服务）"><a href="#🔹-方式-2-—-使用-API-Key（第三方服务）" class="headerlink" title="🔹 方式 2 — 使用 API Key（第三方服务）"></a>🔹 方式 2 — 使用 API Key（第三方服务）</h3><p>如果你有支持 Codex 模型的第三方 API Key，也可以配置：</p><ol><li>新建配置目录：</li></ol><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p ~/.codex</span><br></pre></td></tr></table></figure><ol><li>创建 <code>config.toml</code>（指定 API 服务商和模型）</li><li>创建 <code>auth.json</code> 并填入你的 API Key</li></ol><p>示例：</p><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;OPENAI_API_KEY&quot;</span><span class="punctuation">:</span> <span class="string">&quot;sk-你的API密钥&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure><p>然后重新运行 <code>codex</code> 即可。</p><hr><h2 id="🧩-在-VS-Code-中安装-Codex-插件"><a href="#🧩-在-VS-Code-中安装-Codex-插件" class="headerlink" title="🧩 在 VS Code 中安装 Codex 插件"></a>🧩 在 VS Code 中安装 Codex 插件</h2><p>如果你不喜欢命令行交互，实际上这中方式在实际开发中很少用到，我推荐在 <strong>VS Code 中通过插件 UI 使用 Codex</strong>。</p><h3 id="1-打开-VS-Code"><a href="#1-打开-VS-Code" class="headerlink" title="1. 打开 VS Code"></a>1. 打开 VS Code</h3><p>打开 VS Code 编辑器。</p><hr><h3 id="2-安装-Codex-扩展"><a href="#2-安装-Codex-扩展" class="headerlink" title="2. 安装 Codex 扩展"></a>2. 安装 Codex 扩展</h3><ol><li>点击左侧的 <strong>扩展商店（Extensions）</strong></li><li>在搜索框中输入 <strong>Codex</strong></li><li>找到 <strong>OpenAI 官方 Codex 插件</strong> 并点击 <strong>安装</strong>。</li></ol><p><img src="/posts/9975aeb1/image-20260205123303996.png" alt="image-20260205123303996"></p><hr><h3 id="3-登录并使用"><a href="#3-登录并使用" class="headerlink" title="3. 登录并使用"></a>3. 登录并使用</h3><p>安装完成后：</p><ol><li>左侧边栏会出现 Codex 图标</li><li>点击图标并完成登录授权（与 CLI 登录类似）</li><li>授权成功后即可在侧边栏中与 Codex 对话、生成代码</li></ol><p><img src="/posts/9975aeb1/image-20260205123455217.png" alt="image-20260205123455217"></p><p>🛠 你还可以选中代码块 → 右键 → 选择 “Ask Codex” 直接提问当前代码片段的解释或优化建议。</p><p><strong>安装教程到此结束，后续有时间我还会发一些有关codex在代码开发中的实际应用方式以及一些小技巧，供大家交流与学习！</strong></p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 教程 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> AI </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>hexo跨端协同教程</title>
       <link href="/posts/83dcefb7.html"/>
       <url>/posts/83dcefb7.html</url>
@@ -159,22 +184,22 @@
     
     
     <entry>
-      <title>文章分类</title>
-      <link href="/categories/index.html"/>
-      <url>/categories/index.html</url>
+      <title>关于此网站</title>
+      <link href="/about/index.html"/>
+      <url>/about/index.html</url>
       
-        <content type="html"><![CDATA[<ul><li>学习笔记</li><li>教程</li><li>计算机网络</li><li>算法</li><li>Mango的爱好杂谈</li></ul>]]></content>
+        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
       
     </entry>
     
     
     
     <entry>
-      <title>关于此网站</title>
-      <link href="/about/index.html"/>
-      <url>/about/index.html</url>
+      <title>文章分类</title>
+      <link href="/categories/index.html"/>
+      <url>/categories/index.html</url>
       
-        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
+        <content type="html"><![CDATA[<ul><li>学习笔记</li><li>教程</li><li>计算机网络</li><li>算法</li><li>Mango的爱好杂谈</li></ul>]]></content>
       
     </entry>
     
