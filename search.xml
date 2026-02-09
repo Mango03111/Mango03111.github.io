@@ -45,9 +45,9 @@
       
         <tags>
             
-            <tag> Markdown </tag>
-            
             <tag> Blog </tag>
+            
+            <tag> Markdown </tag>
             
         </tags>
       
@@ -124,9 +124,9 @@
       
         <tags>
             
-            <tag> Code </tag>
-            
             <tag> AI </tag>
+            
+            <tag> Code </tag>
             
         </tags>
       
@@ -253,22 +253,22 @@
     
     
     <entry>
-      <title>标签</title>
-      <link href="/tags/index.html"/>
-      <url>/tags/index.html</url>
+      <title>文章分类</title>
+      <link href="/categories/index.html"/>
+      <url>/categories/index.html</url>
       
-        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li></ul>]]></content>
+        <content type="html"><![CDATA[<ul><li>学习笔记</li><li>教程</li><li>计算机网络</li><li>算法</li><li>Mango的爱好杂谈</li></ul>]]></content>
       
     </entry>
     
     
     
     <entry>
-      <title>文章分类</title>
-      <link href="/categories/index.html"/>
-      <url>/categories/index.html</url>
+      <title>标签</title>
+      <link href="/tags/index.html"/>
+      <url>/tags/index.html</url>
       
-        <content type="html"><![CDATA[<ul><li>学习笔记</li><li>教程</li><li>计算机网络</li><li>算法</li><li>Mango的爱好杂谈</li></ul>]]></content>
+        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li></ul>]]></content>
       
     </entry>
     
