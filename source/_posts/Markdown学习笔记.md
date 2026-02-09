@@ -4,7 +4,7 @@ abbrlink: d87f7e0c
 date: 2026-01-22 17:18:28
 Author: Mango
 tags:
-  - markdown
+  - Markdown
 categories:
   - 学习笔记
 ---
