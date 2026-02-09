@@ -5,6 +5,7 @@ type: "categories"
 ---
 
 - 学习笔记
+- 教程
 - 计算机网络
 - 算法
 - Mango的爱好杂谈
