@@ -156,9 +156,9 @@
       
         <tags>
             
-            <tag> Code </tag>
-            
             <tag> AI </tag>
+            
+            <tag> Code </tag>
             
         </tags>
       
@@ -274,22 +274,11 @@
     
     
     <entry>
-      <title>关于此网站</title>
-      <link href="/about/index.html"/>
-      <url>/about/index.html</url>
+      <title>标签</title>
+      <link href="/tags/index.html"/>
+      <url>/tags/index.html</url>
       
-        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>友情链接</title>
-      <link href="/link/index.html"/>
-      <url>/link/index.html</url>
-      
-        <content type="html"><![CDATA[<h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3>]]></content>
+        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li></ul>]]></content>
       
     </entry>
     
@@ -307,11 +296,22 @@
     
     
     <entry>
-      <title>标签</title>
-      <link href="/tags/index.html"/>
-      <url>/tags/index.html</url>
+      <title>关于此网站</title>
+      <link href="/about/index.html"/>
+      <url>/about/index.html</url>
       
-        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li></ul>]]></content>
+        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>友情链接</title>
+      <link href="/link/index.html"/>
+      <url>/link/index.html</url>
+      
+        <content type="html"><![CDATA[<h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3>]]></content>
       
     </entry>
     
