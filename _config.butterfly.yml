@@ -815,7 +815,7 @@ preloader:
   pace_css_url:
 
 # Page Transition
-enter_transitions: true
+enter_transitions: false
 
 # Default display mode - light (default) / dark
 display_mode: light
