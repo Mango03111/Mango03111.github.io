@@ -156,9 +156,9 @@
       
         <tags>
             
-            <tag> AI </tag>
-            
             <tag> Code </tag>
+            
+            <tag> AI </tag>
             
         </tags>
       
@@ -274,17 +274,6 @@
     
     
     <entry>
-      <title>文章分类</title>
-      <link href="/categories/index.html"/>
-      <url>/categories/index.html</url>
-      
-        <content type="html"><![CDATA[<ul><li>学习笔记</li><li>教程</li><li>计算机网络</li><li>算法</li><li>梦啥说啥</li></ul>]]></content>
-      
-    </entry>
-    
-    
-    
-    <entry>
       <title>关于此网站</title>
       <link href="/about/index.html"/>
       <url>/about/index.html</url>
@@ -296,22 +285,33 @@
     
     
     <entry>
-      <title>标签</title>
-      <link href="/tags/index.html"/>
-      <url>/tags/index.html</url>
+      <title>友情链接</title>
+      <link href="/link/index.html"/>
+      <url>/link/index.html</url>
       
-        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li></ul>]]></content>
+        <content type="html"><![CDATA[<h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3>]]></content>
       
     </entry>
     
     
     
     <entry>
-      <title>友情链接</title>
-      <link href="/link/index.html"/>
-      <url>/link/index.html</url>
+      <title>文章分类</title>
+      <link href="/categories/index.html"/>
+      <url>/categories/index.html</url>
       
-        <content type="html"><![CDATA[<h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3>]]></content>
+        <content type="html"><![CDATA[<ul><li>学习笔记</li><li>教程</li><li>计算机网络</li><li>算法</li><li>梦啥说啥</li></ul>]]></content>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>标签</title>
+      <link href="/tags/index.html"/>
+      <url>/tags/index.html</url>
+      
+        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li></ul>]]></content>
       
     </entry>
     
