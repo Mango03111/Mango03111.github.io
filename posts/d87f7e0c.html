@@ -1,0 +1,282 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Markdown 学习笔记 | SuperBigMango</title><meta name="author" content="Mango"><meta name="copyright" content="Mango"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="Markdown是一种轻量级标记语言，排版语法简洁，让人们更多地关注内容本身而非排版。它使用易读易写的纯文本格式编写文档，可与HTML混编，可导出 HTML、PDF 以及本身的 .md 格式的文件。因简洁、高效、易读、易写，Markdown被大量使用，如Github、Wikipedia、简书**等。 一、标题语法（#）要创建标题，请在单词或短语前面添加井号 (#) 。# 的数量代表了标题的级别。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Markdown 学习笔记">
+<meta property="og:url" content="https://superbigmango.top/posts/d87f7e0c.html">
+<meta property="og:site_name" content="SuperBigMango">
+<meta property="og:description" content="Markdown是一种轻量级标记语言，排版语法简洁，让人们更多地关注内容本身而非排版。它使用易读易写的纯文本格式编写文档，可与HTML混编，可导出 HTML、PDF 以及本身的 .md 格式的文件。因简洁、高效、易读、易写，Markdown被大量使用，如Github、Wikipedia、简书**等。 一、标题语法（#）要创建标题，请在单词或短语前面添加井号 (#) 。# 的数量代表了标题的级别。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://superbigmango.top/img/mango_avatar.png">
+<meta property="article:published_time" content="2026-01-22T09:18:28.000Z">
+<meta property="article:modified_time" content="2026-02-10T16:17:10.948Z">
+<meta property="article:author" content="Mango">
+<meta property="article:tag" content="Markdown">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://superbigmango.top/img/mango_avatar.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Markdown 学习笔记",
+  "url": "https://superbigmango.top/posts/d87f7e0c.html",
+  "image": "https://superbigmango.top/img/mango_avatar.png",
+  "datePublished": "2026-01-22T09:18:28.000Z",
+  "dateModified": "2026-02-10T16:17:10.948Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Mango",
+      "url": "https://github.com/Mango03111"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://superbigmango.top/posts/d87f7e0c.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)')
+          const mediaQueryLight = window.matchMedia('(prefers-color-scheme: light)')
+
+          if (theme === undefined) {
+            if (mediaQueryLight.matches) activateLightMode()
+            else if (mediaQueryDark.matches) activateDarkMode()
+            else {
+              const hour = new Date().getHours()
+              const isNight = hour <= 6 || hour >= 18
+              isNight ? activateDarkMode() : activateLightMode()
+            }
+            mediaQueryDark.addEventListener('change', () => {
+              if (saveToLocal.get('theme') === undefined) {
+                e.matches ? activateDarkMode() : activateLightMode()
+              }
+            })
+          } else {
+            theme === 'light' ? activateLightMode() : activateDarkMode()
+          }
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":true,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: true
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Markdown 学习笔记',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/background_01.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">10</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">6</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">5</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background: transparent;"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">SuperBigMango</span></a><a class="nav-page-title" href="/"><span class="site-name">Markdown 学习笔记</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Markdown 学习笔记</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-01-22T09:18:28.000Z" title="发表于 2026-01-22 17:18:28">2026-01-22</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-10T16:17:10.948Z" title="更新于 2026-02-11 00:17:10">2026-02-11</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">学习笔记</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>6分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p><strong>Markdown</strong>是一种轻量级标记语言，排版语法简洁，让人们更多地关注内容本身而非排版。它使用易读易写的纯文本格式编写文档，可与HTML混编，可导出 <code>HTML</code>、<code>PDF</code> 以及本身的<code> .md</code> 格式的文件。因简洁、高效、易读、易写，Markdown被大量使用，如<a target="_blank" rel="noopener" href="https://github.com/" title="你好呀">Github</a><strong>、</strong><code>Wikipedia</code><strong>、</strong><code>简书</code>**等。</p>
+<h2 id="一、标题语法（-）"><a href="#一、标题语法（-）" class="headerlink" title="一、标题语法（#）"></a>一、标题语法（<code>#</code>）</h2><p>要创建标题，请在单词或短语前面添加井号 (<code>#</code>) 。<code>#</code> 的数量代表了标题的级别。</p>
+<p>不同的 Markdown 应用程序处理 # 和标题之间的空格方式并不一致。为了兼容考虑，请用一个空格在 # 和标题之间进行分隔。</p>
+<h2 id="二、段落语法"><a href="#二、段落语法" class="headerlink" title="二、段落语法"></a>二、段落语法</h2><p><strong>不要用空格（spaces）或制表符（ tabs）缩进段落。</strong></p>
+<h2 id="三、换行语法（）"><a href="#三、换行语法（）" class="headerlink" title="三、换行语法（&lt;br&gt;）"></a>三、换行语法（<code>&lt;br&gt;</code>）</h2><p>在一行的末尾添加两个或多个空格，然后按回车键,即可创建一个换行(<code>&lt;br&gt;</code>)。</p>
+<p>几乎每个 Markdown 应用程序都支持两个或多个空格进行换行，称为 <code>结尾空格（trailing whitespace)</code> 的方式，但这是有争议的，因为很难在编辑器中直接看到空格，并且很多人在每个句子后面都会有意或无意地添加两个空格。由于这个原因，你可能要使用除结尾空格以外的其它方式来换行。幸运的是，几乎每个 Markdown 应用程序都支持另一种换行方式：HTML 的 <code>&lt;br&gt;</code> 标签。</p>
+<h2 id="四、强调语法"><a href="#四、强调语法" class="headerlink" title="四、强调语法(*)"></a>四、强调语法(<code>*</code>)</h2><h3 id="1、粗体（-）"><a href="#1、粗体（-）" class="headerlink" title="1、粗体（**）"></a>1、粗体（**）</h3><p>要加粗文本，请在单词或短语的前后各添加两个星号**（asterisks）。如需加粗一个单词或短语的中间部分用以表示强调的话，请在要加粗部分的两侧各添加两个星号（asterisks）。</p>
+<p><strong>加粗文字</strong></p>
+<h3 id="2、斜体（-）"><a href="#2、斜体（-）" class="headerlink" title="2、斜体（*）"></a>2、斜体（*）</h3><p>要用斜体显示文本，请在单词或短语前后添加一个星号（asterisk）。要斜体突出单词的中间部分，请在字母前后各添加一个星号，中间不要带空格。</p>
+<p><em>斜体文字</em></p>
+<h3 id="3、粗体-斜体（-）"><a href="#3、粗体-斜体（-）" class="headerlink" title="3、粗体&amp;斜体（***）"></a>3、粗体&amp;斜体（***）</h3><p>要同时用粗体和斜体突出显示文本，请在单词或短语的前后各添加三个星号或下划线。要加粗并用斜体显示单词或短语的中间部分，请在要突出显示的部分前后各添加三个星号，中间不要带空格。</p>
+<h2 id="五、引用语法"><a href="#五、引用语法" class="headerlink" title="五、引用语法(&gt;)"></a>五、引用语法(<code>&gt;</code>)</h2><p>要创建块引用，请在段落前添加一个 <code>&gt;</code> 符号。</p>
+<h4 id="多个段落的块引用"><a href="#多个段落的块引用" class="headerlink" title="多个段落的块引用"></a>多个段落的块引用</h4><p>块引用可以包含多个段落。为段落之间的空白行添加一个 &gt; 符号。</p>
+<h4 id="嵌套块引用"><a href="#嵌套块引用" class="headerlink" title="嵌套块引用"></a>嵌套块引用</h4><p>块引用可以嵌套。在要嵌套的段落前添加一个 &gt;&gt; 符号。</p>
+<h2 id="六、列表语法-1"><a href="#六、列表语法-1" class="headerlink" title="六、列表语法(1. - * +)"></a>六、列表语法(<code>1.</code> <code>- * +</code>)</h2><h3 id="1、有序列表"><a href="#1、有序列表" class="headerlink" title="1、有序列表"></a>1、有序列表</h3><p>要创建有序列表，请在每个列表项前添加数字并紧跟一个英文句点。数字不必按数学顺序排列，但是列表应当以数字 1 起始。</p>
+<ol>
+<li>hhh</li>
+<li>hhh</li>
+<li>hhh</li>
+</ol>
+<h3 id="2、无序列表"><a href="#2、无序列表" class="headerlink" title="2、无序列表"></a>2、无序列表</h3><p>要创建无序列表，请在每个列表项前面添加破折号 (-)、星号 (*) 或加号 (+) 。缩进一个或多个列表项可创建嵌套列表。</p>
+<h3 id="3、在列表中嵌套其他元素"><a href="#3、在列表中嵌套其他元素" class="headerlink" title="3、在列表中嵌套其他元素"></a>3、在列表中嵌套其他元素</h3><p>要在保留列表连续性的同时在列表中添加另一种元素，请将该元素缩进<strong>四个空格</strong>或<strong>一个制表符（tab）</strong>。</p>
+<h2 id="七、代码语法"><a href="#七、代码语法" class="headerlink" title="七、代码语法(&#96;&#96;&#96;)"></a>七、代码语法(&#96;&#96;&#96;)</h2><p>要将单词或短语表示为代码，请将其包裹在反引号 (&#96;&#96;&#96;) 中。</p>
+<table>
+<thead>
+<tr>
+<th>Markdown语法</th>
+<th>HTML</th>
+<th>预览效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>At the command prompt, type </code>nano<code>.</code></td>
+<td><code>At the command prompt, type &lt;code&gt;nano&lt;/code&gt;.</code></td>
+<td>At the command prompt, type <code>nano</code>.</td>
+</tr>
+</tbody></table>
+<h3 id="转义反引号"><a href="#转义反引号" class="headerlink" title="转义反引号"></a>转义反引号</h3><p>如果你要表示为代码的单词或短语中包含一个或多个反引号，则可以通过将单词或短语包裹在双反引号(&#96;&#96;&#96;&#96;)中。</p>
+<table>
+<thead>
+<tr>
+<th>Markdown语法</th>
+<th>HTML</th>
+<th>预览效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Use `code` in your Markdown file.</code></td>
+<td><code>&lt;code&gt;Use </code>code<code> in your Markdown file.&lt;/code&gt;</code></td>
+<td><code>Use </code>code<code> in your Markdown file.</code></td>
+</tr>
+</tbody></table>
+<h3 id="代码块"><a href="#代码块" class="headerlink" title="#代码块"></a><a target="_blank" rel="noopener" href="https://markdown.com.cn/basic-syntax/code.html#%E4%BB%A3%E7%A0%81%E5%9D%97">#</a>代码块</h3><p>要创建代码块，请将代码块的每一行缩进至少四个空格或一个制表符。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&amp;lt;html&gt;</span><br><span class="line">  &amp;lt;head&gt;</span><br><span class="line">  &amp;lt;/head&gt;</span><br><span class="line">&amp;lt;/html&gt;</span><br></pre></td></tr></table></figure>
+
+<p>渲染效果如下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&amp;lt;html&gt;</span><br><span class="line">  &amp;lt;head&gt;</span><br><span class="line">  &amp;lt;/head&gt;</span><br><span class="line">&amp;lt;/html&gt;</span><br></pre></td></tr></table></figure>
+
+<p><strong>Note:</strong> 要创建不用缩进的代码块，请使用 <a target="_blank" rel="noopener" href="https://markdown.com.cn/extended-syntax/fenced-code-blocks.html">围栏式代码块（fenced code blocks）</a>.</p>
+<h2 id="八、分割线语法"><a href="#八、分割线语法" class="headerlink" title="八、分割线语法(*** --- ___)"></a>八、分割线语法(<code>***</code> <code>---</code> <code>___</code>)</h2><p>要创建分隔线，请在单独一行上使用三个或多个星号 (<code>***</code>)、破折号 (<code>---</code>) 或下划线 (<code>___</code>) ，并且不能包含其他内容。</p>
+<p>示例：</p>
+<hr>
+<hr>
+<hr>
+<h2 id="九、链接语法"><a href="#九、链接语法" class="headerlink" title="九、链接语法([](&quot;&quot;))"></a>九、链接语法(<code>[](&quot;&quot;)</code>)</h2><p>链接文本放在中括号内，链接地址放在后面的括号中，链接title可选。</p>
+<p>超链接Markdown语法代码：<code>[超链接显示名](超链接地址 &quot;超链接title&quot;)</code></p>
+<h3 id="1、给链接加定义"><a href="#1、给链接加定义" class="headerlink" title="1、给链接加定义"></a>1、给链接加定义</h3><p>链接title是当鼠标悬停在链接上时会出现的文字，这个title是可选的，它放在圆括号中链接地址后面，跟链接地址之间以空格分隔。lg：<a target="_blank" rel="noopener" href="https://markdown.com.cn/" title="最好的markdown教程">Markdown语法</a></p>
+<h3 id="2、网址和Email地址"><a href="#2、网址和Email地址" class="headerlink" title="2、网址和Email地址"></a>2、网址和Email地址</h3><p>使用尖括号（&lt;&gt;）可以很方便地把URL或者email地址变成可点击的链接。</p>
+<p><a target="_blank" rel="noopener" href="https://markdown.com.cn/">https://markdown.com.cn</a></p>
+<h3 id="3、带格式化的链接"><a href="#3、带格式化的链接" class="headerlink" title="3、带格式化的链接"></a>3、带格式化的链接</h3><p><a target="_blank" rel="noopener" href="https://markdown.com.cn/basic-syntax/links.html#emphasis">强调</a> 链接, 在链接语法前后增加星号。 要将链接表示为代码，请在方括号中添加反引号。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">I love supporting the **[EFF](https://eff.org)**.</span><br><span class="line">This is the *[Markdown Guide](https://www.markdownguide.org)*.</span><br><span class="line">See the section on [`code`](#code).</span><br></pre></td></tr></table></figure>
+
+<p>渲染效果如下：</p>
+<p>I love supporting the <strong><a target="_blank" rel="noopener" href="https://eff.org/">EFF (opens new window)</a></strong>.<br>This is the <em><a target="_blank" rel="noopener" href="https://www.markdownguide.org/">Markdown Guide (opens new window)</a></em>.<br>See the section on <a target="_blank" rel="noopener" href="https://markdown.com.cn/basic-syntax/links.html#code"><code>code</code></a>.</p>
+<h3 id="4、引用类型链接"><a href="#4、引用类型链接" class="headerlink" title="4、引用类型链接"></a>4、引用类型链接</h3><h4 id="链接的第一部分格式"><a href="#链接的第一部分格式" class="headerlink" title="链接的第一部分格式"></a>链接的第一部分格式</h4><p>引用类型的链接的第一部分使用两组括号进行格式设置。第一组方括号包围应显示为链接的文本。第二组括号显示了一个标签，该标签用于指向您存储在文档其他位置的链接。</p>
+<p>尽管不是必需的，可以在第一组和第二组括号之间包含一个空格。第二组括号中的标签不区分大小写，可以包含字母，数字，空格或标点符号。</p>
+<p>以下示例格式对于链接的第一部分效果相同：</p>
+<ul>
+<li><code>[hobbit-hole][1]</code></li>
+<li><code>[hobbit-hole] [1]</code></li>
+</ul>
+<h4 id="链接的第二部分格式"><a href="#链接的第二部分格式" class="headerlink" title="链接的第二部分格式"></a>链接的第二部分格式</h4><p>引用类型链接的第二部分使用以下属性设置格式：</p>
+<ol>
+<li>放在括号中的标签，其后紧跟一个冒号和至少一个空格（例如<code>[label]:</code>）。</li>
+<li>链接的URL，可以选择将其括在尖括号中。</li>
+<li>链接的可选标题，可以将其括在双引号，单引号或括号中。</li>
+</ol>
+<p>以下示例格式对于链接的第二部分效果相同：</p>
+<ul>
+<li><code>[1]: https://en.wikipedia.org/wiki/Hobbit#Lifestyle</code></li>
+<li><code>[1]: https://en.wikipedia.org/wiki/Hobbit#Lifestyle &quot;Hobbit lifestyles&quot;</code></li>
+<li><code>[1]: https://en.wikipedia.org/wiki/Hobbit#Lifestyle &#39;Hobbit lifestyles&#39;</code></li>
+<li><code>[1]: https://en.wikipedia.org/wiki/Hobbit#Lifestyle (Hobbit lifestyles)</code></li>
+<li><code>[1]: &lt;https://en.wikipedia.org/wiki/Hobbit#Lifestyle&gt; &quot;Hobbit lifestyles&quot;</code></li>
+<li><code>[1]: &lt;https://en.wikipedia.org/wiki/Hobbit#Lifestyle&gt; &#39;Hobbit lifestyles&#39;</code></li>
+<li><code>[1]: &lt;https://en.wikipedia.org/wiki/Hobbit#Lifestyle&gt; (Hobbit lifestyles)</code></li>
+</ul>
+<p>可以将链接的第二部分放在Markdown文档中的任何位置。有些人将它们放在出现的段落之后，有些人则将它们放在文档的末尾（例如尾注或脚注）。</p>
+<h2 id="十、图片语法"><a href="#十、图片语法" class="headerlink" title="十、图片语法(![]( &quot;&quot;))"></a>十、图片语法(<code>![]( &quot;&quot;)</code>)</h2><p>要添加图像，请使用感叹号 (<code>!</code>), 然后在方括号增加替代文本，图片链接放在圆括号里，括号里的链接后可以增加一个可选的图片标题文本。</p>
+<p>插入图片Markdown语法代码：<code>![图片alt](图片链接 &quot;图片title&quot;)</code>。</p>
+<h2 id="十一、转义字符语法（-）"><a href="#十一、转义字符语法（-）" class="headerlink" title="十一、转义字符语法（\）"></a>十一、转义字符语法（<code>\</code>）</h2><p>要显示原本用于格式化 Markdown 文档的字符，请在字符前面添加反斜杠字符 \ 。</p>
+<h2 id="十二、内嵌HTML标签"><a href="#十二、内嵌HTML标签" class="headerlink" title="十二、内嵌HTML标签"></a>十二、内嵌HTML标签</h2><p>没啥特殊作用，可以不用（知道markdown语法和HTML可以级联就好）</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Mango03111">Mango</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://superbigmango.top/posts/d87f7e0c.html">https://superbigmango.top/posts/d87f7e0c.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://superbigmango.top" target="_blank">SuperBigMango</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Markdown/">Markdown</a></div><div class="post-share"><div class="social-share" data-image="/img/mango_avatar.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/posts/57c84b4f.html" title="Claude Code 学习笔记"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Claude Code 学习笔记</div></div><div class="info-2"><div class="info-item-1">Claude Code 是人工智能助手Claude具备的代码理解、生成和优化能力的统称，它基于大型语言模型训练而成，能够处理多种编程语言（如Python、C++、Java等）的编程任务。具体而言，Claude Code能够分析用户需求并生成相应的代码片段，调试和解释现有代码的逻辑错误，优化算法实现以提高性能，在不同编程语言之间进行转换，以及生成技术文档和测试用例。它深度理解编程范式、数据结构和算法，并能结合具体应用场景（如网络优化、数学建模、系统设计等）提供专业级编码解决方案。Claude Code的特点在于能够上下文关联地理解复杂需求，提供符合工程最佳实践的代码，同时给出清晰的技术解释，相当于一个具备全栈开发能力的AI编程助手。 一、常用指令行 /init - 初始化阅读工程，输出到md文件 两次按shift+tab 进入plan mode（做计划） think hard/ harder/ ultrathink -代表思考力度（越右消耗token越多） creat a task to xxxx - 创建todo list，分步骤执行操作 add a task to xxx - ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/77789012.html" title="【教程】Typora 免费安装指南（仅支持版本：1.9.5）"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-02-09</div><div class="info-item-2">【教程】Typora 免费安装指南（仅支持版本：1.9.5）</div></div><div class="info-2"><div class="info-item-1">Typora 是一款跨平台的 Markdown 文本编辑器，其最大的特点是“所见即所得（WYSIWYG）”的编辑体验。这意味着当你在 Typora 中输入 Markdown 语法时，它会在同一界面实时渲染、显示最终效果，而不是像其他很多编辑器那样需要分别显示源码窗口和预览窗口。 主要优点包括：  实时预览：无需切换视图，即时看到排版后的效果。 界面简洁：专注内容编辑，不受复杂 UI 干扰。 支持丰富导出格式：如 PDF、HTML、Word 等，方便分享与发布。 主题与样式多样化：可根据喜好自定义外观。 跨平台支持：可用于 Windows、macOS、Linux 等系统。  这种编辑模式使 Typora 既适合写博客、笔记，也适合编写技术文档与代码说明。  准备工作在正式安装之前，你需要准备：  Typora 官方安装包（建议选择 1.9.5 版本，因为后续版本可能需要付费或不兼容免费激活工具） 辅助工具包（包含两个可执行文件：node_inject.exe 和 license-gen.exe），用于生成激活序列号。  ⚠️ 注意：这些辅助工具来源于开源项目，仅限学习与技术交流使用...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Mango</div><div class="author-info-description">给时光以生命，给岁月以文明</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">10</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">6</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">5</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Mango03111" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:yixuanhao_xidian@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #24292e;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到Big Mango的空间！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E6%A0%87%E9%A2%98%E8%AF%AD%E6%B3%95%EF%BC%88-%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">一、标题语法（#）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E6%AE%B5%E8%90%BD%E8%AF%AD%E6%B3%95"><span class="toc-number">2.</span> <span class="toc-text">二、段落语法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E6%8D%A2%E8%A1%8C%E8%AF%AD%E6%B3%95%EF%BC%88%EF%BC%89"><span class="toc-number">3.</span> <span class="toc-text">三、换行语法（&lt;br&gt;）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%BC%BA%E8%B0%83%E8%AF%AD%E6%B3%95"><span class="toc-number">4.</span> <span class="toc-text">四、强调语法(*)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E7%B2%97%E4%BD%93%EF%BC%88-%EF%BC%89"><span class="toc-number">4.1.</span> <span class="toc-text">1、粗体（**）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E6%96%9C%E4%BD%93%EF%BC%88-%EF%BC%89"><span class="toc-number">4.2.</span> <span class="toc-text">2、斜体（*）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3%E3%80%81%E7%B2%97%E4%BD%93-%E6%96%9C%E4%BD%93%EF%BC%88-%EF%BC%89"><span class="toc-number">4.3.</span> <span class="toc-text">3、粗体&amp;斜体（***）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%BC%95%E7%94%A8%E8%AF%AD%E6%B3%95"><span class="toc-number">5.</span> <span class="toc-text">五、引用语法(&gt;)</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A4%9A%E4%B8%AA%E6%AE%B5%E8%90%BD%E7%9A%84%E5%9D%97%E5%BC%95%E7%94%A8"><span class="toc-number">5.0.1.</span> <span class="toc-text">多个段落的块引用</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B5%8C%E5%A5%97%E5%9D%97%E5%BC%95%E7%94%A8"><span class="toc-number">5.0.2.</span> <span class="toc-text">嵌套块引用</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E5%88%97%E8%A1%A8%E8%AF%AD%E6%B3%95-1"><span class="toc-number">6.</span> <span class="toc-text">六、列表语法(1. - * +)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E6%9C%89%E5%BA%8F%E5%88%97%E8%A1%A8"><span class="toc-number">6.1.</span> <span class="toc-text">1、有序列表</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E6%97%A0%E5%BA%8F%E5%88%97%E8%A1%A8"><span class="toc-number">6.2.</span> <span class="toc-text">2、无序列表</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3%E3%80%81%E5%9C%A8%E5%88%97%E8%A1%A8%E4%B8%AD%E5%B5%8C%E5%A5%97%E5%85%B6%E4%BB%96%E5%85%83%E7%B4%A0"><span class="toc-number">6.3.</span> <span class="toc-text">3、在列表中嵌套其他元素</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E4%BB%A3%E7%A0%81%E8%AF%AD%E6%B3%95"><span class="toc-number">7.</span> <span class="toc-text">七、代码语法(&#96;&#96;&#96;)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BD%AC%E4%B9%89%E5%8F%8D%E5%BC%95%E5%8F%B7"><span class="toc-number">7.1.</span> <span class="toc-text">转义反引号</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E5%9D%97"><span class="toc-number">7.2.</span> <span class="toc-text">代码块</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81%E5%88%86%E5%89%B2%E7%BA%BF%E8%AF%AD%E6%B3%95"><span class="toc-number">8.</span> <span class="toc-text">八、分割线语法(*** --- ___)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E9%93%BE%E6%8E%A5%E8%AF%AD%E6%B3%95"><span class="toc-number">9.</span> <span class="toc-text">九、链接语法([](&quot;&quot;))</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E7%BB%99%E9%93%BE%E6%8E%A5%E5%8A%A0%E5%AE%9A%E4%B9%89"><span class="toc-number">9.1.</span> <span class="toc-text">1、给链接加定义</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E7%BD%91%E5%9D%80%E5%92%8CEmail%E5%9C%B0%E5%9D%80"><span class="toc-number">9.2.</span> <span class="toc-text">2、网址和Email地址</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3%E3%80%81%E5%B8%A6%E6%A0%BC%E5%BC%8F%E5%8C%96%E7%9A%84%E9%93%BE%E6%8E%A5"><span class="toc-number">9.3.</span> <span class="toc-text">3、带格式化的链接</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4%E3%80%81%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E9%93%BE%E6%8E%A5"><span class="toc-number">9.4.</span> <span class="toc-text">4、引用类型链接</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%93%BE%E6%8E%A5%E7%9A%84%E7%AC%AC%E4%B8%80%E9%83%A8%E5%88%86%E6%A0%BC%E5%BC%8F"><span class="toc-number">9.4.1.</span> <span class="toc-text">链接的第一部分格式</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%93%BE%E6%8E%A5%E7%9A%84%E7%AC%AC%E4%BA%8C%E9%83%A8%E5%88%86%E6%A0%BC%E5%BC%8F"><span class="toc-number">9.4.2.</span> <span class="toc-text">链接的第二部分格式</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E3%80%81%E5%9B%BE%E7%89%87%E8%AF%AD%E6%B3%95"><span class="toc-number">10.</span> <span class="toc-text">十、图片语法(![]( &quot;&quot;))</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E4%B8%80%E3%80%81%E8%BD%AC%E4%B9%89%E5%AD%97%E7%AC%A6%E8%AF%AD%E6%B3%95%EF%BC%88-%EF%BC%89"><span class="toc-number">11.</span> <span class="toc-text">十一、转义字符语法（\）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E4%BA%8C%E3%80%81%E5%86%85%E5%B5%8CHTML%E6%A0%87%E7%AD%BE"><span class="toc-number">12.</span> <span class="toc-text">十二、内嵌HTML标签</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/f09cdbbd.html" title="wallpaper壁纸解包软件推荐">wallpaper壁纸解包软件推荐</a><time datetime="2026-02-11T12:11:30.000Z" title="发表于 2026-02-11 20:11:30">2026-02-11</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/6f93af5f.html" title="【教程】Omnetpp软件安装教程">【教程】Omnetpp软件安装教程</a><time datetime="2026-02-09T08:17:21.000Z" title="发表于 2026-02-09 16:17:21">2026-02-09</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/77789012.html" title="【教程】Typora 免费安装指南（仅支持版本：1.9.5）">【教程】Typora 免费安装指南（仅支持版本：1.9.5）</a><time datetime="2026-02-09T08:10:33.000Z" title="发表于 2026-02-09 16:10:33">2026-02-09</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/9975aeb1.html" title="【教程】Codex CLI 安装与 VS Code 插件使用教程">【教程】Codex CLI 安装与 VS Code 插件使用教程</a><time datetime="2026-02-09T07:51:22.000Z" title="发表于 2026-02-09 15:51:22">2026-02-09</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/83dcefb7.html" title="【教程】hexo跨端协同教程">【教程】hexo跨端协同教程</a><time datetime="2026-02-09T07:13:18.000Z" title="发表于 2026-02-09 15:13:18">2026-02-09</time></div></div></div></div></div></div></main><footer id="footer" style="background: transparent;"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Mango</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><div class="js-pjax"></div><script async data-pjax src="/"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div></body></html>
