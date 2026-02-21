@@ -4,6 +4,19 @@
   
     
     <entry>
+      <title>latex安装教程</title>
+      <link href="/posts/6317b69f.html"/>
+      <url>/posts/6317b69f.html</url>
+      
+        <content type="html"><![CDATA[<p>预留位</p>]]></content>
+      
+      
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>wallpaper壁纸解包软件推荐</title>
       <link href="/posts/f09cdbbd.html"/>
       <url>/posts/f09cdbbd.html</url>
@@ -170,9 +183,9 @@
       
         <tags>
             
-            <tag> Code </tag>
-            
             <tag> Algorithm </tag>
+            
+            <tag> Code </tag>
             
         </tags>
       
@@ -197,9 +210,9 @@
       
         <tags>
             
-            <tag> Code </tag>
-            
             <tag> Algorithm </tag>
+            
+            <tag> Code </tag>
             
         </tags>
       
@@ -261,6 +274,17 @@
     
     
     <entry>
+      <title>文章分类</title>
+      <link href="/categories/index.html"/>
+      <url>/categories/index.html</url>
+      
+        <content type="html"><![CDATA[<ul><li>学习笔记</li><li>教程</li><li>计算机网络</li><li>算法</li><li>梦啥说啥</li></ul>]]></content>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>关于此网站</title>
       <link href="/about/index.html"/>
       <url>/about/index.html</url>
@@ -277,17 +301,6 @@
       <url>/tags/index.html</url>
       
         <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li></ul>]]></content>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title>文章分类</title>
-      <link href="/categories/index.html"/>
-      <url>/categories/index.html</url>
-      
-        <content type="html"><![CDATA[<ul><li>学习笔记</li><li>教程</li><li>计算机网络</li><li>算法</li><li>梦啥说啥</li></ul>]]></content>
       
     </entry>
     
