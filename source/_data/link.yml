@@ -1,0 +1,49 @@
+- class_name: 友情链接
+  class_desc: 
+  link_list:
+    - name: 觅梦随笔
+      link: https://www.meemx.com/
+      avatar: https://www.meemx.com/img/author-avatar_hu_2d6cad33cfd35305.jpg
+      descr: 大师兄的知识分享平台~
+    - name: 吴川斌的博客
+      link: https://www.mr-wu.cn/
+      avatar: https://www.mr-wu.cn/favicon.ico
+      descr: 嵌入式、智能硬件技术分享
+
+- class_name: 学习网站
+  class_desc: 
+  link_list:
+    - name: 谷粉学术
+      link: https://gfsoso.vygc.top/
+      avatar: https://img.gufenxueshu.net/index_files/tubiao/icon/scitgico2.png
+      descr: 墙内学术搜索平台（不稳定）
+    - name: DeepWiki
+      link: https://deepwiki.com/
+      avatar: https://deepwiki.com/favicon.ico
+      descr: AI驱动的知识库平台
+    - name: 力扣
+      link: https://leetcode.cn/
+      avatar: https://leetcode.cn/favicon.ico
+      descr: 编程题库，算法练习平台
+    
+
+- class_name: 工具网站
+  class_desc: 生产力好帮手
+  link_list:
+      - name: Convertio
+        link: https://convertio.co/zh/
+        avatar: https://static.convertio.co/img/apple-touch-icon-180x180-precomposed.png
+        descr: 多用途文件格式转换
+      - name: Avaide
+        link: https://www.avaide.com/zh/image-upscaler/
+        avatar: https://www.avaide.com/Favicon.ico
+        descr: AI图像超分辨率增强工具
+      - name: 迪威模型
+        link: https://www.3dwhere.com/
+        avatar: https://www.3dwhere.com/Favicon.ico
+        descr: CAD模型资源平台
+      - name: MakerWorld
+        link: https://makerworld.com.cn/zh
+        avatar: https://makerworld.com.cn/favicon.ico
+        descr: 3D打印模型资源平台
+        
