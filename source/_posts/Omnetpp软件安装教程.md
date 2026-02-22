@@ -7,6 +7,8 @@ categories:
   - 教程
 abbrlink: 6f93af5f
 date: 2026-02-09 16:17:21
+cover:
+top_img: transparent
 ---
 
 OMNeT++ 是一款基于离散事件的网络仿真平台，常用于通信网络、协议设计与性能分析。由于其 IDE 基于 Java，同时核心库需要本地编译，因此安装过程相比普通软件稍复杂。本文将详细讲解在**windows**环境中 **JDK 安装 → OMNeT++ 构建 → 示例验证 → IDE 启动** 的完整流程。
