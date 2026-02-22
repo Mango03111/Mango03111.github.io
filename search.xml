@@ -4,13 +4,25 @@
   
     
     <entry>
-      <title>latex安装教程</title>
+      <title>【教程】LaTeX 安装教程（Windows + TeX Live 2025 + TeXstudio）</title>
       <link href="/posts/6317b69f.html"/>
       <url>/posts/6317b69f.html</url>
       
-        <content type="html"><![CDATA[<p>预留位</p>]]></content>
+        <content type="html"><![CDATA[<p>如果你准备开始使用 LaTeX 写论文或技术文档，那么本教程将带你在 Windows 上完整搭建 LaTeX 开发环境。我们将使用：</p><ul><li><strong>TeX Live 2025</strong> —— LaTeX 编译发行版（核心环境）</li><li><strong>TeXstudio</strong> —— 图形化编辑器（写代码用）</li></ul><blockquote><p>适用于论文写作、课程作业、科研排版<br>系统环境：Windows 10 &#x2F; 11<br>安装方案：TeX Live 2025 + TeXstudio</p></blockquote><hr><h1 id="什么是-TeX-Live-和-TeXstudio？"><a href="#什么是-TeX-Live-和-TeXstudio？" class="headerlink" title="什么是 TeX Live 和 TeXstudio？"></a>什么是 TeX Live 和 TeXstudio？</h1><p>在开始安装之前，先简单了解一下：</p><table><thead><tr><th>软件</th><th>作用</th></tr></thead><tbody><tr><td>TeX Live</td><td>LaTeX 的核心发行版，包含编译器和各种宏包</td></tr><tr><td>TeXstudio</td><td>可视化 LaTeX 编辑器，用于编写和编译 <code>.tex</code> 文件</td></tr></tbody></table><hr><h1 id="安装-TeX-Live-2025"><a href="#安装-TeX-Live-2025" class="headerlink" title="安装 TeX Live 2025"></a>安装 TeX Live 2025</h1><h2 id="下载-TeX-Live"><a href="#下载-TeX-Live" class="headerlink" title="下载 TeX Live"></a>下载 TeX Live</h2><p>为了获得更快的下载速度，推荐使用 <strong>清华大学开源软件镜像站（TUNA）</strong> 下载 TeX Live ISO 镜像：</p><p>👉 <strong>清华镜像目录：</strong><br>🔗 <a href="https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/texlive/Images/">https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/texlive/Images/</a></p><p>在目录中找到最新版本的 ISO 文件，例如：</p><ul><li>📥 <a href="https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/texlive/Images/texlive2025-20250308.iso">TeX Live 2025 ISO 镜像（清华镜像）</a></li><li>📥 <a href="https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/texlive/Images/texlive.iso">TeX Live 通用 ISO 文件</a></li></ul><p>⚠️ 文件体积约 6GB~8GB，建议使用稳定网络下载。</p><p>下载完成后：</p><ul><li>右键 ISO 文件 → 选择“装载”</li><li>或使用解压软件解压</li><li>进入文件夹后运行：</li></ul><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">install-tl-windows.bat</span><br></pre></td></tr></table></figure><p>即可启动安装程序。</p><hr><h2 id="运行安装程序"><a href="#运行安装程序" class="headerlink" title="运行安装程序"></a>运行安装程序</h2><p>安装界面打开后：</p><h3 id="推荐配置："><a href="#推荐配置：" class="headerlink" title="推荐配置："></a>推荐配置：</h3><ul><li>选择 <strong>Full installation（完整安装）</strong></li><li>安装路径保持默认（一般为 C:\texlive\2025）</li><li>为节省空间，建议语言只勾选中文和英文（Advance-customize）</li></ul><p>点击 <strong>Install</strong> 开始安装。</p><hr><h2 id="等待安装完成"><a href="#等待安装完成" class="headerlink" title="等待安装完成"></a>等待安装完成</h2><p>完整安装时间：</p><ul><li>30分钟 ~ 1小时（取决于电脑性能）</li></ul><p>安装完成后会自动配置环境变量。</p><hr><h2 id="测试是否安装成功"><a href="#测试是否安装成功" class="headerlink" title="测试是否安装成功"></a>测试是否安装成功</h2><p>打开 <strong>命令提示符（Win + R → cmd）</strong>，输入：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tex -v</span><br></pre></td></tr></table></figure><p>如果显示版本信息，说明安装成功。</p><hr><h1 id="安装-TeXstudio-编辑器"><a href="#安装-TeXstudio-编辑器" class="headerlink" title="安装 TeXstudio 编辑器"></a>安装 TeXstudio 编辑器</h1><h2 id="下载-TeXstudio"><a href="#下载-TeXstudio" class="headerlink" title="下载 TeXstudio"></a>下载 TeXstudio</h2><p>👉 <a href="https://www.texstudio.org/">TeXstudio 官方下载页面</a></p><p>下载 Windows 版本安装包。</p><hr><h2 id="安装步骤"><a href="#安装步骤" class="headerlink" title="安装步骤"></a>安装步骤</h2><ul><li>双击安装程序</li><li>一路 Next</li><li>保持默认配置即可</li></ul><p>安装完成后启动 TeXstudio。</p><hr><h1 id="配置-TeXstudio-编译器"><a href="#配置-TeXstudio-编译器" class="headerlink" title="配置 TeXstudio 编译器"></a>配置 TeXstudio 编译器</h1><p>打开 TeXstudio：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Options → Configure TeXstudio</span><br></pre></td></tr></table></figure><p>在「构建（Build）」选项中：</p><h3 id="默认编译器建议设置为："><a href="#默认编译器建议设置为：" class="headerlink" title="默认编译器建议设置为："></a>默认编译器建议设置为：</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">XeLaTeX</span><br></pre></td></tr></table></figure><p>原因：</p><ul><li>支持中文</li><li>字体更现代</li><li>更适合论文写作</li></ul><p>设置完成点击 OK。</p><hr><h1 id="测试编译第一个-LaTeX-文件"><a href="#测试编译第一个-LaTeX-文件" class="headerlink" title="测试编译第一个 LaTeX 文件"></a>测试编译第一个 LaTeX 文件</h1><p>新建文件：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">File → New</span><br></pre></td></tr></table></figure><p>输入测试代码：</p><figure class="highlight latex"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">\documentclass</span>&#123;article&#125;</span><br><span class="line"><span class="keyword">\usepackage</span>&#123;ctex&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">\begin</span>&#123;document&#125;</span><br><span class="line"></span><br><span class="line">你好，LaTeX！</span><br><span class="line"></span><br><span class="line"><span class="keyword">\end</span>&#123;document&#125;</span><br></pre></td></tr></table></figure><p>点击绿色 ▶ 编译按钮。</p><p>如果成功生成 PDF 文件，说明环境搭建完成。</p><hr><h1 id="推荐平台"><a href="#推荐平台" class="headerlink" title="推荐平台"></a>推荐平台</h1><p>如果你不想在本地安装 LaTeX 环境，或者希望在不同设备之间同步写作，可以使用 <strong>Overleaf</strong> —— 一个基于浏览器的在线 LaTeX 编辑平台。</p><ul><li><a href="https://www.overleaf.com/">Overleaf 在线 LaTeX 平台</a></li></ul>]]></content>
       
       
+      <categories>
+          
+          <category> 教程 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Research </tag>
+            
+        </tags>
       
     </entry>
     
@@ -274,22 +286,22 @@
     
     
     <entry>
-      <title>标签</title>
-      <link href="/tags/index.html"/>
-      <url>/tags/index.html</url>
+      <title>关于此网站</title>
+      <link href="/about/index.html"/>
+      <url>/about/index.html</url>
       
-        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li></ul>]]></content>
+        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
       
     </entry>
     
     
     
     <entry>
-      <title>关于此网站</title>
-      <link href="/about/index.html"/>
-      <url>/about/index.html</url>
+      <title>友情链接</title>
+      <link href="/link/index.html"/>
+      <url>/link/index.html</url>
       
-        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
+        <content type="html"><![CDATA[<h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3>]]></content>
       
     </entry>
     
@@ -307,11 +319,11 @@
     
     
     <entry>
-      <title>友情链接</title>
-      <link href="/link/index.html"/>
-      <url>/link/index.html</url>
+      <title>标签</title>
+      <link href="/tags/index.html"/>
+      <url>/tags/index.html</url>
       
-        <content type="html"><![CDATA[<h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3>]]></content>
+        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li><li>Research</li></ul>]]></content>
       
     </entry>
     
