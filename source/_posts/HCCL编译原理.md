@@ -12,9 +12,9 @@ date: 2026-01-26 17:45:00
 
 HCCL（Huawei Collective Communication Library）是华为为昇腾（Ascend）AI 处理器提供的集合通信库，用于分布式深度学习训练中多卡、多机之间的高速数据通信，它实现了 AllReduce、AllGather、Broadcast 等常见集合通信算子，并针对昇腾硬件和高速互联进行了深度优化，作用类似于 NVIDIA GPU 生态中的 NCCL，常用于 MindSpore 及 Ascend 生态下的大规模模型训练。
 
-## 一、整体架构
+## 整体架构
 
-### 1. 核心组件
+### 核心组件
 
 ```
 src/domain/collective_communication/algorithm/
@@ -31,7 +31,7 @@ src/domain/collective_communication/algorithm/
 │           └── coll_custom_*_executor.cc    # 具体执行器实现
 ```
 
-### 2. 类层次结构
+### 类层次结构
 
 ```cpp
 class CollExecutorBase {              // 基类
@@ -48,9 +48,9 @@ class CollCustomSmallAllReduceMeshExecutor : public CollCommExecutor {  // 具�
 };
 ```
 
-## 二、注册机制
+## 注册机制
 
-### 1. 注册宏定义
+### 注册宏定义
 
 ```cpp
 // coll_alg_exec_registry.h
@@ -64,7 +64,7 @@ class CollCustomSmallAllReduceMeshExecutor : public CollCommExecutor {  // 具�
         CollAlgExecRegistry::Instance().Register(tag, collExecCreator)
 ```
 
-### 2. 注册表实现
+### 注册表实现
 
 ```cpp
 class CollAlgExecRegistry {
@@ -79,9 +79,9 @@ public:
 };
 ```
 
-## 三、工作原理
+## 工作原理
 
-### 1. 编译期机制
+### 编译期机制
 
 ```
 源文件编译过程：
@@ -92,7 +92,7 @@ custom_executor.cc
        └── .data段：静态对象数据
 ```
 
-### 2. 内存布局
+### 内存布局
 
 ```
 最终可执行文件布局：
@@ -105,7 +105,7 @@ custom_executor.cc
     |- 所有executor实现代码
 ```
 
-### 3. 执行流程
+### 执行流程
 
 ```cpp
 // 1. 程序启动前：静态初始化
@@ -123,15 +123,15 @@ HcclResult CustomAllReduceOperator::SelectAlg(...) {
 auto executor = CollAlgExecRegistry::Instance().GetAlgExec(algName, ...);
 ```
 
-## 四、关键特性
+## 关键特性
 
-### 1. 静态初始化特性
+### 静态初始化特性
 
 - 利用C++静态对象构造顺序
 - 程序启动前完成注册
 - 零运行时注册开销
 
-### 2. 符号可见性控制
+### 符号可见性控制
 
 ```cpp
 namespace {  // 匿名命名空间
@@ -140,15 +140,15 @@ namespace {  // 匿名命名空间
 }
 ```
 
-### 3. 运行时灵活性
+### 运行时灵活性
 
 - 通过字符串标识符动态选择算法
 - 支持条件选择不同实现
 - 易于扩展新算法
 
-## 五、优势对比
+## 优势对比
 
-### 1. 对比传统静态链接
+### 对比传统静态链接
 
 ```
 静态链接库：
@@ -162,7 +162,7 @@ HCCL注册机制：
 - 注册表统一管理
 ```
 
-### 2. 设计优势
+### 设计优势
 
 1. 更好的封装性
    - 实现细节完全隐藏
@@ -176,9 +176,9 @@ HCCL注册机制：
    - 支持动态算法选择
    - 统一的管理机制
 
-## 六、使用示例
+## 使用示例
 
-### 1. 实现新执行器
+### 实现新执行器
 
 ```cpp
 // custom_executor.cc
@@ -192,7 +192,7 @@ class CustomExecutor : public CollCommExecutor {
 REGISTER_EXEC("CustomExecutor", Custom, CustomExecutor);
 ```
 
-### 2. 在算子中使用
+### 在算子中使用
 
 ```cpp
 HcclResult CustomOperator::SelectAlg(...) {
