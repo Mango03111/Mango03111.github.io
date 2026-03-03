@@ -7,6 +7,8 @@ categories:
   - 教程
 abbrlink: 9975aeb1
 date: 2026-02-09 15:51:22
+cover: https://ai-bot.cn/wp-content/uploads/2025/04/Codex-CLI-website2.png
+top_img: transparent
 ---
 
 **Codex** 是 OpenAI 推出的新一代 **AI 编程智能体（Coding Agent）**，它不只是“会写代码的 ChatGPT”，而是一个**可以直接参与你真实开发流程的工具**。与传统在网页里对话的 ChatGPT 不同，Codex 被设计为：
