@@ -8,7 +8,6 @@ tags:
 categories:
 - 教程
 top_img: transparent
-cover: https://www.latexstudio.net/assets/new/images/logo.png
 ---
 
 如果你准备开始使用 LaTeX 写论文或技术文档，那么本教程将带你在 Windows 上完整搭建 LaTeX 开发环境。我们将使用：

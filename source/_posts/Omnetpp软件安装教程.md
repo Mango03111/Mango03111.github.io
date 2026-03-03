@@ -7,7 +7,6 @@ categories:
   - 教程
 abbrlink: 6f93af5f
 date: 2026-02-09 16:17:21
-cover: https://opengraph.githubassets.com/c2594579a24a2c5abb51c451fec2ec9bd28ee4117018115a3a650d3486d61c55/omnetpp/docs.omnetpp.org
 top_img: transparent
 ---
 

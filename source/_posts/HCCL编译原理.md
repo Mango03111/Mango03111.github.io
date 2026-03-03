@@ -8,7 +8,6 @@ categories:
   - 计算机网络
 abbrlink: "58974538"
 date: 2026-01-26 17:45:00
-cover: https://ts1.tc.mm.bing.net/th/id/R-C.21382d719c45715aae4a6538e99e507c?rik=ggq9C7XOFYJw%2bw&riu=http%3a%2f%2fclubimg.club.vmall.com%2fdata%2fattachment%2fforum%2f201904%2f22%2f125917ayxmduz20zmetesy.jpg&ehk=hsPYlNcwRqLV15cuSTKBHtqm2tZYKs6P0a0OSSZnYyA%3d&risl=&pid=ImgRaw&r=0
 ---
 
 HCCL（Huawei Collective Communication Library）是华为为昇腾（Ascend）AI 处理器提供的集合通信库，用于分布式深度学习训练中多卡、多机之间的高速数据通信，它实现了 AllReduce、AllGather、Broadcast 等常见集合通信算子，并针对昇腾硬件和高速互联进行了深度优化，作用类似于 NVIDIA GPU 生态中的 NCCL，常用于 MindSpore 及 Ascend 生态下的大规模模型训练。
