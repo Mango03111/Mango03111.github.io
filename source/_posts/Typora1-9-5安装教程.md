@@ -8,6 +8,7 @@ categories:
   - 教程
 abbrlink: '77789012'
 date: 2026-02-09 16:10:33
+cover: https://pic3.zhimg.com/v2-78bd957965c45e25c45a7fcb1e4b996e_720w.jpg
 ---
 
 Typora 是一款跨平台的 Markdown 文本编辑器，其最大的特点是“**所见即所得（WYSIWYG）**”的编辑体验。这意味着当你在 Typora 中输入 Markdown 语法时，它会在同一界面实时渲染、显示最终效果，而不是像其他很多编辑器那样需要分别显示源码窗口和预览窗口。
