@@ -8,7 +8,7 @@ categories:
   - 教程
 abbrlink: '77789012'
 date: 2026-02-09 16:10:33
-cover: https://pic3.zhimg.com/v2-78bd957965c45e25c45a7fcb1e4b996e_720w.jpg
+cover: https://oldgerman.github.io/6c57f882/Typora-logo.png
 top_img: transparent
 ---
 
