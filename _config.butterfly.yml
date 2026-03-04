@@ -170,9 +170,9 @@ post_meta:
 # The top_img settings of home page
 # default: top img - full screen, site info - middle
 # The position of site info, eg: 300px/300em/300rem/10%
-index_site_info_top:
+index_site_info_top: 300px
 # The height of top_img, eg: 300px/300em/300rem
-index_top_img_height:
+index_top_img_height: 600px
 
 # The subtitle on homepage
 subtitle:
@@ -835,7 +835,7 @@ preloader:
   # 2. pace (progress bar)
   source: 2
   # pace theme (see https://codebyzach.github.io/pace/)
-  pace_css_url:
+  pace_css_url: css/loading-bar.css
 
 # Page Transition
 enter_transitions: false
