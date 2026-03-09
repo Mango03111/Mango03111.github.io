@@ -4,7 +4,7 @@ Author: Mango
 top_img: transparent
 categories:
   - 教程
-cover: https://logos-world.net/wp-content/uploads/2021/02/Docker-Logo-700x394.png 
+cover: https://pic1.zhimg.com/v2-d21b51fcb099240410565cbaa126a258_r.jpg 
 abbrlink: df0fd32a
 date: 2026-03-04 16:40:21
 tags:
