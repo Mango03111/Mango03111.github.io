@@ -4,6 +4,33 @@
   
     
     <entry>
+      <title>GitHub SSH Key 配置指南</title>
+      <link href="/posts/1070beb0.html"/>
+      <url>/posts/1070beb0.html</url>
+      
+        <content type="html"><![CDATA[<p>在日常开发中，GitHub 是最常用的代码托管平台之一。当我们更换电脑、重装系统或重新配置开发环境时，<strong>SSH Key 的配置是非常重要的一步</strong>。</p><p>使用 SSH 方式连接 GitHub 可以避免每次 push 代码都输入用户名和密码，同时也更加安全和高效。</p><p>这篇文章将从零开始介绍 <strong>GitHub SSH Key 的完整配置流程</strong>。</p><hr><h1 id="一、为什么推荐使用-SSH-连接-GitHub"><a href="#一、为什么推荐使用-SSH-连接-GitHub" class="headerlink" title="一、为什么推荐使用 SSH 连接 GitHub"></a>一、为什么推荐使用 SSH 连接 GitHub</h1><p>GitHub 支持两种访问方式：</p><ol><li>HTTPS</li><li>SSH</li></ol><p>两种方式的区别：</p><table><thead><tr><th>方式</th><th>特点</th></tr></thead><tbody><tr><td>HTTPS</td><td>每次操作可能需要输入账号密码</td></tr><tr><td>SSH</td><td>使用密钥认证，不需要反复输入密码</td></tr></tbody></table><p>在开发环境中，大多数开发者都会选择 <strong>SSH 方式</strong>，因为：</p><ul><li>使用更加方便</li><li>安全性更高</li><li>适合长期开发环境</li></ul><hr><h1 id="二、生成-SSH-Key"><a href="#二、生成-SSH-Key" class="headerlink" title="二、生成 SSH Key"></a>二、生成 SSH Key</h1><p>首先需要在本地生成 SSH 密钥。</p><p>打开终端执行：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa -C <span class="string">&quot;your_email@example.com&quot;</span></span><br></pre></td></tr></table></figure><p>参数说明：</p><ul><li><code>-t rsa</code>：指定密钥类型为 RSA</li><li><code>-C</code>：添加备注信息，通常填写 GitHub 邮箱</li></ul><p>执行命令后会提示：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Enter file in which to save the key</span><br></pre></td></tr></table></figure><p>这里直接 <strong>按 Enter 使用默认路径即可</strong>。</p><p>接下来会提示输入密码：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Enter passphrase</span><br></pre></td></tr></table></figure><p>如果不想每次使用密钥输入密码，可以直接按 Enter 跳过。</p><p>生成成功后，在用户目录下会出现 <code>.ssh</code> 文件夹。</p><hr><h1 id="三、查看生成的-SSH-Key"><a href="#三、查看生成的-SSH-Key" class="headerlink" title="三、查看生成的 SSH Key"></a>三、查看生成的 SSH Key</h1><p>进入 <code>.ssh</code> 目录：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> ~/.ssh</span><br></pre></td></tr></table></figure><p>查看文件：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span></span><br></pre></td></tr></table></figure><p>一般会看到两个文件：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">id_rsa</span><br><span class="line">id_rsa.pub</span><br></pre></td></tr></table></figure><p>含义：</p><table><thead><tr><th>文件</th><th>说明</th></tr></thead><tbody><tr><td>id_rsa</td><td>私钥（必须保密）</td></tr><tr><td>id_rsa.pub</td><td>公钥（需要上传到 GitHub）</td></tr></tbody></table><p>查看公钥内容：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> id_rsa.pub</span><br></pre></td></tr></table></figure><p>终端会输出一段类似这样的内容：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ...</span><br></pre></td></tr></table></figure><p>复制 <strong>整段内容</strong>。</p><hr><h1 id="四、将-SSH-Key-添加到-GitHub"><a href="#四、将-SSH-Key-添加到-GitHub" class="headerlink" title="四、将 SSH Key 添加到 GitHub"></a>四、将 SSH Key 添加到 GitHub</h1><p>登录 GitHub 后，按以下步骤操作：</p><ol><li>点击右上角头像</li><li>进入 <strong>Settings</strong></li><li>找到 <strong>SSH and GPG keys</strong></li><li>点击 <strong>New SSH key</strong></li></ol><p>然后填写：</p><ul><li><strong>Title</strong>：设备名称（例如：My Laptop）</li><li><strong>Key</strong>：粘贴刚刚复制的公钥</li></ul><p>点击 <strong>Add SSH key</strong> 完成添加。</p><hr><h1 id="五、测试-SSH-是否配置成功"><a href="#五、测试-SSH-是否配置成功" class="headerlink" title="五、测试 SSH 是否配置成功"></a>五、测试 SSH 是否配置成功</h1><p>在终端执行：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh -T git@github.com</span><br></pre></td></tr></table></figure><p>如果看到类似提示：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Hi username! You&#x27;ve successfully authenticated</span><br></pre></td></tr></table></figure><p>说明 SSH 配置成功。</p><hr><h1 id="六、使用-SSH-克隆仓库"><a href="#六、使用-SSH-克隆仓库" class="headerlink" title="六、使用 SSH 克隆仓库"></a>六、使用 SSH 克隆仓库</h1><p>在 GitHub 仓库页面可以看到两种地址：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">HTTPS</span><br><span class="line">SSH</span><br></pre></td></tr></table></figure><p>选择 <strong>SSH 地址</strong>，例如：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git@github.com:username/repository.git</span><br></pre></td></tr></table></figure><p>执行克隆命令：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> git@github.com:username/repository.git</span><br></pre></td></tr></table></figure><p>这样就可以将远程仓库克隆到本地。</p><hr><h1 id="七、提交代码到-GitHub"><a href="#七、提交代码到-GitHub" class="headerlink" title="七、提交代码到 GitHub"></a>七、提交代码到 GitHub</h1><p>开发完成后，可以按标准 Git 流程提交代码。</p><p>查看当前状态：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git status</span><br></pre></td></tr></table></figure><p>添加文件：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git add .</span><br></pre></td></tr></table></figure><p>提交代码：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git commit -m <span class="string">&quot;feat: add new feature&quot;</span></span><br></pre></td></tr></table></figure><p>推送代码：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git push</span><br></pre></td></tr></table></figure><p>如果 SSH 配置正确，就可以直接推送到 GitHub。</p><hr><h1 id="八、常见问题：Git-提交时报错"><a href="#八、常见问题：Git-提交时报错" class="headerlink" title="八、常见问题：Git 提交时报错"></a>八、常见问题：Git 提交时报错</h1><p>有些情况下第一次提交代码会出现提示：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Please tell me who you are</span><br></pre></td></tr></table></figure><p>这是因为 Git 没有配置用户信息。</p><p>执行以下命令：</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git config --global user.email <span class="string">&quot;your_email@example.com&quot;</span></span><br><span class="line">git config --global user.name <span class="string">&quot;Your Name&quot;</span></span><br></pre></td></tr></table></figure><p>配置完成后即可正常提交代码。</p><p><img src="https://git-scm.com/images/logos/downloads/Git-Logo-2Color.png"></p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 梦啥说啥 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Code </tag>
+            
+            <tag> git </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>【教程】Windows环境下docker安装教程</title>
       <link href="/posts/df0fd32a.html"/>
       <url>/posts/df0fd32a.html</url>
@@ -179,9 +206,9 @@
       
         <tags>
             
-            <tag> Blog </tag>
-            
             <tag> git </tag>
+            
+            <tag> Blog </tag>
             
         </tags>
       
@@ -206,9 +233,9 @@
       
         <tags>
             
-            <tag> AI </tag>
-            
             <tag> Code </tag>
+            
+            <tag> AI </tag>
             
         </tags>
       
@@ -233,9 +260,9 @@
       
         <tags>
             
-            <tag> Code </tag>
-            
             <tag> Algorithm </tag>
+            
+            <tag> Code </tag>
             
         </tags>
       
@@ -260,9 +287,9 @@
       
         <tags>
             
-            <tag> Code </tag>
-            
             <tag> Algorithm </tag>
+            
+            <tag> Code </tag>
             
         </tags>
       
@@ -324,22 +351,11 @@
     
     
     <entry>
-      <title>关于此网站</title>
-      <link href="/about/index.html"/>
-      <url>/about/index.html</url>
+      <title>友情链接</title>
+      <link href="/link/index.html"/>
+      <url>/link/index.html</url>
       
-        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
-      
-    </entry>
-    
-    
-    
-    <entry>
-      <title></title>
-      <link href="/css/custom.css"/>
-      <url>/css/custom.css</url>
-      
-        <content type="html"><![CDATA[/*停止头像旋转*/#aside-content .card-info .card-info-social-icons .social-icon :hover {    transform: scale(1.5);}#aside-content .avatar-img :hover {    transform: none;}/* 全局宽度 */.layout {    max-width: 1300px;}/* 侧边卡片栏宽度 */.aside-content {    max-width: 318px;    min-width: 300px;}/* 平板尺寸自适应(不启用侧边栏宽度限制) */@media screen and (max-width: 900px) {    .aside-content {        max-width: none !important;        padding: 0 5px 0 5px;    }}/* 文章和侧边栏卡片的毛玻璃效果 *//* 明亮模式 */#body-wrap #recent-posts>.recent-post-item,#body-wrap .recent-post-item,#body-wrap #aside-content .card-widget,#body-wrap .layout>div:first-child:not(.recent-posts),#body-wrap #nav .menus_items .menus_item .menus_item_child,#body-wrap #pagination .page-number:not(.current),#body-wrap #pagination .extend,#page-header #post {    background: rgba(255, 255, 255, 0.85);    backdrop-filter: blur(2px);    -webkit-backdrop-filter: blur(2px);    /* border: 1px solid rgba(255, 255, 255, 0.85); */    box-shadow: 0 8px 16px -4px rgba(138, 138, 138, 0.15);    transition: background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;}#body-wrap #pagination .page-number:not(.current):hover,#body-wrap #pagination .extend:hover {    background: #ff7142d2;    border-color: #ff7142d2;    color: #fff;}/* 夜间模式 */html[data-theme="dark"] #body-wrap #recent-posts>.recent-post-item,html[data-theme="dark"] #body-wrap .recent-post-item,html[data-theme="dark"] #body-wrap #aside-content .card-widget,html[data-theme="dark"] #body-wrap .layout>div:first-child:not(.recent-posts),html[data-theme="dark"] #body-wrap #nav .menus_items .menus_item .menus_item_child,html[data-theme="dark"] #body-wrap #pagination .page-number:not(.current),html[data-theme="dark"] #body-wrap #pagination .extend,html[data-theme="dark"] #page-header #post {    background: rgba(30, 30, 30, 0.7);    border: 1px solid rgba(255, 255, 255, 0.08);    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);}/* 移动端禁用所有毛玻璃效果 */@media screen and (max-width: 768px) {    #body-wrap * {        backdrop-filter: none !important;        -webkit-backdrop-filter: none !important;    }}]]></content>
+        <content type="html"><![CDATA[<h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3>]]></content>
       
     </entry>
     
@@ -357,11 +373,22 @@
     
     
     <entry>
-      <title>友情链接</title>
-      <link href="/link/index.html"/>
-      <url>/link/index.html</url>
+      <title>关于此网站</title>
+      <link href="/about/index.html"/>
+      <url>/about/index.html</url>
       
-        <content type="html"><![CDATA[<h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3>]]></content>
+        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title></title>
+      <link href="/css/custom.css"/>
+      <url>/css/custom.css</url>
+      
+        <content type="html"><![CDATA[/*停止头像旋转*/#aside-content .card-info .card-info-social-icons .social-icon :hover {    transform: scale(1.5);}#aside-content .avatar-img :hover {    transform: none;}/* 全局宽度 */.layout {    max-width: 1300px;}/* 侧边卡片栏宽度 */.aside-content {    max-width: 318px;    min-width: 300px;}/* 平板尺寸自适应(不启用侧边栏宽度限制) */@media screen and (max-width: 900px) {    .aside-content {        max-width: none !important;        padding: 0 5px 0 5px;    }}/* 文章和侧边栏卡片的毛玻璃效果 *//* 明亮模式 */#body-wrap #recent-posts>.recent-post-item,#body-wrap .recent-post-item,#body-wrap #aside-content .card-widget,#body-wrap .layout>div:first-child:not(.recent-posts),#body-wrap #nav .menus_items .menus_item .menus_item_child,#body-wrap #pagination .page-number:not(.current),#body-wrap #pagination .extend,#page-header #post {    background: rgba(255, 255, 255, 0.85);    backdrop-filter: blur(2px);    -webkit-backdrop-filter: blur(2px);    /* border: 1px solid rgba(255, 255, 255, 0.85); */    box-shadow: 0 8px 16px -4px rgba(138, 138, 138, 0.15);    transition: background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;}#body-wrap #pagination .page-number:not(.current):hover,#body-wrap #pagination .extend:hover {    background: #ff7142d2;    border-color: #ff7142d2;    color: #fff;}/* 夜间模式 */html[data-theme="dark"] #body-wrap #recent-posts>.recent-post-item,html[data-theme="dark"] #body-wrap .recent-post-item,html[data-theme="dark"] #body-wrap #aside-content .card-widget,html[data-theme="dark"] #body-wrap .layout>div:first-child:not(.recent-posts),html[data-theme="dark"] #body-wrap #nav .menus_items .menus_item .menus_item_child,html[data-theme="dark"] #body-wrap #pagination .page-number:not(.current),html[data-theme="dark"] #body-wrap #pagination .extend,html[data-theme="dark"] #page-header #post {    background: rgba(30, 30, 30, 0.7);    border: 1px solid rgba(255, 255, 255, 0.08);    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);}/* 修复移动端毛玻璃效果 */@media screen and (max-width: 768px) {    #body-wrap * {        backdrop-filter: none !important;        -webkit-backdrop-filter: none !important;    }}]]></content>
       
     </entry>
     

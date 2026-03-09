@@ -65,7 +65,7 @@ html[data-theme="dark"] #page-header #post {
     box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);
 }
 
-/* 移动端禁用所有毛玻璃效果 */
+/* 修复移动端毛玻璃效果 */
 @media screen and (max-width: 768px) {
     #body-wrap * {
         backdrop-filter: none !important;
