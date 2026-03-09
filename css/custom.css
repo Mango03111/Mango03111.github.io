@@ -29,8 +29,8 @@
 /* 文章和侧边栏卡片的毛玻璃效果 */
 /* 明亮模式 */
 #body-wrap #recent-posts>.recent-post-item,
-#body-wrap .recent-post-item,
-/* #body-wrap #aside-content .card-widget, */
+/* #body-wrap .recent-post-item, */
+#body-wrap #aside-content .card-widget,
 #body-wrap .layout>div:first-child:not(.recent-posts),
 #body-wrap #nav .menus_items .menus_item .menus_item_child,
 #body-wrap #pagination .page-number:not(.current),
@@ -53,8 +53,8 @@
 
 /* 夜间模式 */
 html[data-theme="dark"] #body-wrap #recent-posts>.recent-post-item,
-html[data-theme="dark"] #body-wrap .recent-post-item,
-/* html[data-theme="dark"] #body-wrap #aside-content .card-widget, */
+/* html[data-theme="dark"] #body-wrap .recent-post-item, */
+html[data-theme="dark"] #body-wrap #aside-content .card-widget,
 html[data-theme="dark"] #body-wrap .layout>div:first-child:not(.recent-posts),
 html[data-theme="dark"] #body-wrap #nav .menus_items .menus_item .menus_item_child,
 html[data-theme="dark"] #body-wrap #pagination .page-number:not(.current),
