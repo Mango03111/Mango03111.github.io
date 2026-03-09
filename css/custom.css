@@ -29,7 +29,7 @@
 /* 文章和侧边栏卡片的毛玻璃效果 */
 /* 明亮模式 */
 #body-wrap #recent-posts>.recent-post-item,
-/* #body-wrap .recent-post-item, */
+#body-wrap .recent-post-item,
 #body-wrap #aside-content .card-widget,
 #body-wrap .layout>div:first-child:not(.recent-posts),
 #body-wrap #nav .menus_items .menus_item .menus_item_child,
@@ -53,7 +53,7 @@
 
 /* 夜间模式 */
 html[data-theme="dark"] #body-wrap #recent-posts>.recent-post-item,
-/* html[data-theme="dark"] #body-wrap .recent-post-item, */
+html[data-theme="dark"] #body-wrap .recent-post-item,
 html[data-theme="dark"] #body-wrap #aside-content .card-widget,
 html[data-theme="dark"] #body-wrap .layout>div:first-child:not(.recent-posts),
 html[data-theme="dark"] #body-wrap #nav .menus_items .menus_item .menus_item_child,
@@ -63,4 +63,12 @@ html[data-theme="dark"] #page-header #post {
     background: rgba(30, 30, 30, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);
+}
+
+/* 移动端禁用所有毛玻璃效果 */
+@media screen and (max-width: 768px) {
+    #body-wrap * {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
 }
