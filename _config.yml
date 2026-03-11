@@ -127,22 +127,22 @@ magnet:
   devide: 3
   display:
     - name: 教程
-      display_name: 教程集合
+      display_name: Mango 教程集合
       icon: 🏫
     - name: 学习笔记
-      display_name: mango学习笔记
+      display_name: Mango 学习笔记
       icon: 📖
-    - name: 梦啥说啥
-      display_name: mango胡思乱想
-      icon: 💡
     - name: 计算机网络
       display_name: 计算机网络
       icon: 💻
+    - name: 梦啥说啥
+      display_name: 梦到啥说啥
+      icon: 💡
   color_setting:
     text_color: black
     text_hover_color: white
     background_color: "#f2f2f2"
-    background_hover_color: "#b30070"
+    background_hover_color: "#792090"
   layout:
     type: id
     name: recent-posts
