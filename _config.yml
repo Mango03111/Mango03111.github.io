@@ -118,3 +118,34 @@ deploy:
   type: git
   repository: git@github.com:Mango03111/Mango03111.github.io.git
   branch: main
+
+magnet:
+  enable: true
+  priority: 2
+  enable_page: /
+  type: categories
+  devide: 3
+  display:
+    - name: 教程
+      display_name: 教程集合
+      icon: 🏫
+    - name: 学习笔记
+      display_name: mango学习笔记
+      icon: 📖
+    - name: 梦啥说啥
+      display_name: mango胡思乱想
+      icon: 💡
+    - name: 计算机网络
+      display_name: 计算机网络
+      icon: 💻
+  color_setting:
+    text_color: black
+    text_hover_color: white
+    background_color: "#f2f2f2"
+    background_hover_color: "#b30070"
+  layout:
+    type: id
+    name: recent-posts
+    index: 0
+  temple_html: '<div class="recent-post-item" style="width:100%;height: auto"><div id="catalog_magnet">${temple_html_item}</div></div>'
+  plus_style: ""
