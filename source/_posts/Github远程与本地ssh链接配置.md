@@ -21,7 +21,7 @@ date: 2026-03-09 11:14:11
 
 ---
 
-# 一、为什么推荐使用 SSH 连接 GitHub
+# 为什么推荐使用 SSH 连接 GitHub
 
 GitHub 支持两种访问方式：
 
@@ -43,7 +43,7 @@ GitHub 支持两种访问方式：
 
 ---
 
-# 二、生成 SSH Key
+# 生成 SSH Key
 
 首先需要在本地生成 SSH 密钥。
 
@@ -78,7 +78,7 @@ Enter passphrase
 
 ---
 
-# 三、查看生成的 SSH Key
+# 查看生成的 SSH Key
 
 进入 `.ssh` 目录：
 
@@ -122,7 +122,7 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ...
 
 ---
 
-# 四、将 SSH Key 添加到 GitHub
+# 将 SSH Key 添加到 GitHub
 
 登录 GitHub 后，按以下步骤操作：
 
@@ -140,7 +140,7 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ...
 
 ---
 
-# 五、测试 SSH 是否配置成功
+# 测试 SSH 是否配置成功
 
 在终端执行：
 
@@ -158,7 +158,7 @@ Hi username! You've successfully authenticated
 
 ---
 
-# 六、使用 SSH 克隆仓库
+# 使用 SSH 克隆仓库
 
 在 GitHub 仓库页面可以看到两种地址：
 
@@ -183,7 +183,7 @@ git clone git@github.com:username/repository.git
 
 ---
 
-# 七、提交代码到 GitHub
+# 提交代码到 GitHub
 
 开发完成后，可以按标准 Git 流程提交代码。
 
@@ -215,7 +215,7 @@ git push
 
 ---
 
-# 八、常见问题：Git 提交时报错
+# 常见问题：Git 提交时报错
 
 有些情况下第一次提交代码会出现提示：
 
