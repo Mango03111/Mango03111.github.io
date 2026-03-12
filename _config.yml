@@ -136,7 +136,7 @@ magnet:
       display_name: 计算机网络
       icon: 💻
     - name: 梦啥说啥
-      display_name: 梦到啥说啥
+      display_name: 梦啥说啥
       icon: 💡
   color_setting:
     text_color: black
