@@ -52,7 +52,7 @@ Hexo 自带的部署机制会将生成的静态页面推送到一个指定分支
 1. 进入你的博客仓库。
 2. 从 GitHub 上新建一个名为 `hexo` 的分支，这时，github会将master分支中的静态网页内容克隆到hexo分支。
 
-![截图20260205125043](截图20260205125043.png)
+![](https://i.mituw.com/imgs/2026/03/14/83e8b053ac569d13.png)
 
 ### 准备推送博客源码
 
@@ -160,4 +160,4 @@ git push origin hexo
 
 如果你也是用vercel自动部署的，可能会发现在hexo分支更新之后，vercel会自动进行预览部署操作，实际上我们是不需要这一步多余操作的（浪费资源）；如果想要关闭这个功能，请进入你的vercel项目设置 - > Environments，把Preview设置为Disabled即可。
 
-![mmexport1770620438174](mmexport1770620438174.png)
+![](https://i.mituw.com/imgs/2026/03/14/aa8049c73393b0d5.png)

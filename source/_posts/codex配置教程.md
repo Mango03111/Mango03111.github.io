@@ -131,8 +131,7 @@ npm install -g @openai/codex@latest --registry=https://registry.npmmirror.com
 ```
 codex --version
 ```
-
-![image-20260205122856394](image-20260205122856394.png)
+![](https://i.mituw.com/imgs/2026/03/14/fa5a6e8721503001.png)
 
 如果能正确输出版本号，说明 Codex CLI 已成功安装。
 
@@ -150,7 +149,7 @@ Codex CLI 需要登录授权才能使用。支持两种方式：
 codex
 ```
 
-![image-20260205123004216](image-20260205123004216.png)
+![](https://i.mituw.com/imgs/2026/03/14/097e0cbea3c703a7.png)
 
 首次运行时会弹出链接或二维码（我这里已经登陆过了），让你在浏览器中登录你的 ChatGPT 账号并授权。登录成功后，即可在终端直接使用。授权信息会自动保存，下次无需重复登录。
 
@@ -197,7 +196,7 @@ mkdir -p ~/.codex
 2. 在搜索框中输入 **Codex**
 3. 找到 **OpenAI 官方 Codex 插件** 并点击 **安装**。
 
-![image-20260205123303996](image-20260205123303996.png)
+![](https://i.mituw.com/imgs/2026/03/14/8f5ebde28c6290f2.png)
 
 ------
 
@@ -209,7 +208,7 @@ mkdir -p ~/.codex
 2. 点击图标并完成登录授权（与 CLI 登录类似）
 3. 授权成功后即可在侧边栏中与 Codex 对话、生成代码
 
-![image-20260205123455217](image-20260205123455217.png)
+![](https://i.mituw.com/imgs/2026/03/14/9b428438cf8415d4.png)
 
 🛠 你还可以选中代码块 → 右键 → 选择 “Ask Codex” 直接提问当前代码片段的解释或优化建议。
 
