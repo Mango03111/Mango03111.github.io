@@ -7,7 +7,7 @@ categories:
   - 教程
 abbrlink: 9975aeb1
 date: 2026-02-09 15:51:22
-cover: https://ai-bot.cn/wp-content/uploads/2025/04/Codex-CLI-website2.png
+cover: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260316/Pe5G/1200X675/image.png
 top_img: transparent
 ---
 

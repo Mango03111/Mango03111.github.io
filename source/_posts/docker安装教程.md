@@ -4,7 +4,7 @@ Author: Mango
 top_img: transparent
 categories:
   - 教程
-cover: https://pic1.zhimg.com/v2-d21b51fcb099240410565cbaa126a258_r.jpg 
+cover: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260316/9mj0/1536X1536/image.png
 abbrlink: df0fd32a
 date: 2026-03-04 16:40:21
 tags:

@@ -37,15 +37,12 @@ tags:
 2. 将需要解包的 `.pkg` 文件准备好（通常来自 Wallpaper Engine 的 Workshop 目录，可在wallpaper中`右键-在资源管理器中打开`）。
 
    <!-- ![截图20260217002809](截图20260217002809.png) -->
-   ![peE2Bp4.png](https://s41.ax1x.com/2026/03/14/peE2Bp4.png)
-
+![1110X957/peE2Bp4.png](https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260316/SEOn/1110X957/wallpaper01.png/webp)
 3. 建议新建一个单独文件夹，将：
 
    - `repkg.exe`
    - 需要解包的 `.pkg` 文件
      放在同一个目录中，便于操作。
-
-   
 
 ------
 
@@ -54,7 +51,7 @@ tags:
 直接右键 - 使用powershell运行：
 
 <!-- ![截图20260217003033](截图20260217003033.png) -->
-![peE2whF.png](https://s41.ax1x.com/2026/03/14/peE2whF.png)
+![981X298/peE2whF.png](https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260316/nX40/981X298/wallpaper02.png/webp)
 
 执行完成后，程序会在当前目录下生成一个output文件夹，里面就是解包后的资源文件。
 

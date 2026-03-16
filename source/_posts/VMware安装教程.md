@@ -4,7 +4,7 @@ Author: Mango
 top_img: transparent
 categories:
   - 教程
-cover: https://industrywired.com/wp-content/uploads/2020/08/VMware-featured-2100x1200.jpg
+cover: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260316/pukj/2048X1170/image.png
 abbrlink: 8bb62f89
 date: 2026-03-02 15:32:20
 tags:

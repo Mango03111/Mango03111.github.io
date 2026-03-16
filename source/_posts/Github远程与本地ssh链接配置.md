@@ -7,7 +7,7 @@ tags:
   - Code
 categories:
   - 梦啥说啥
-cover: https://cdn.textstudio.com/output/graphic/preview/large/0/6/9/9/9960_a863ac94.webp
+cover: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260316/Xa1W/1280X853/image.png
 abbrlink: 1070beb0
 date: 2026-03-09 11:14:11
 ---

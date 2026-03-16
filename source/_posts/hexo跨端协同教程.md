@@ -9,7 +9,7 @@ categories:
 abbrlink: 83dcefb7
 date: 2026-02-09 15:13:18
 top_img: transparent
-cover: https://pic2.zhimg.com/v2-421d607a485277fe8997edc5a672b6e5_r.jpg
+cover: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260316/5b9h/666X300/image.png
 ---
 
 Hexo 是一个快速、高效的静态博客生成框架，主要用于搭建个人博客或技术网站。它允许用户使用 Markdown 编写文章，再由 Hexo 自动生成完整的静态网页。与传统动态博客不同，Hexo 不依赖数据库或后端服务，生成的站点由纯 HTML、CSS 和 JavaScript 组成，访问速度快，安全性高，维护成本低。Hexo 拥有完善的主题和插件生态，支持文章分类、标签、归档、代码高亮等功能，非常适合程序员和技术爱好者记录学习笔记、项目总结或个人思考。通过配合 Git 和静态托管服务，可以实现博客的自动部署和多设备同步，使写作与发布流程更加高效、可控。
