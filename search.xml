@@ -4,6 +4,31 @@
   
     
     <entry>
+      <title>业余无线电（A类）复习笔记</title>
+      <link href="/posts/e8399571.html"/>
+      <url>/posts/e8399571.html</url>
+      
+        <content type="html"><![CDATA[<h2 id="刷题答题技巧"><a href="#刷题答题技巧" class="headerlink" title="刷题答题技巧"></a>刷题答题技巧</h2><ol><li><strong>带短波的选起始频率最高的（选“除去”）</strong></li><li>VHF避免占用146MHZ（146 - 要死溜）</li><li><strong>涉及罚钱的选50万、带万的；销售+责令整改</strong></li><li>F1+ 、F2 - </li><li>态度：“可行时”</li><li>千中百低十甚个特低小数超特低（频率划分：KHZ）</li><li>LF（低频）、VLF（甚低频）、SLF（特低频）</li><li>业余不通公众</li><li><strong>主载波设置范围 - 选范围最小</strong></li></ol><h2 id="知识点"><a href="#知识点" class="headerlink" title="知识点"></a>知识点</h2><h3 id="各波段的波长"><a href="#各波段的波长" class="headerlink" title="各波段的波长"></a>各波段的波长</h3><table><thead><tr><th align="center">频率范围（MHz）</th><th align="center">频段名称</th><th align="center">波段俗称（按波长）</th><th align="center">业务状态</th><th align="center">传播特性与主要用途</th></tr></thead><tbody><tr><td align="center">1.8-2.0</td><td align="center">160米</td><td align="center">中波（部分）</td><td align="center">共用，主要业务</td><td align="center">夜间远距离通信，天线庞大</td></tr><tr><td align="center">3.5-3.9</td><td align="center">80米</td><td align="center">短波</td><td align="center">共用，主要业务</td><td align="center">夜间通信良好，白天本地通信</td></tr><tr><td align="center">7.0-7.2</td><td align="center">40米</td><td align="center">短波</td><td align="center">专用</td><td align="center">全天候可用，夜晚远距离通信极佳</td></tr><tr><td align="center">10.1-10.15</td><td align="center">30米</td><td align="center">短波</td><td align="center">共用，次要业务</td><td align="center">窄带数据&#x2F;电报，全天候稳定</td></tr><tr><td align="center">14.0-14.35</td><td align="center">20米</td><td align="center">短波</td><td align="center">专用</td><td align="center">远距离通信的“黄金波段”，白天尤其好</td></tr><tr><td align="center">18.068-18.168</td><td align="center">17米</td><td align="center">短波</td><td align="center">共用，主要业务</td><td align="center">特性类似20米，但带宽较窄</td></tr><tr><td align="center">21.0-21.45</td><td align="center">15米</td><td align="center">短波</td><td align="center">专用</td><td align="center">太阳活动高年时最佳的远距离波段</td></tr><tr><td align="center">24.89-24.99</td><td align="center">12米</td><td align="center">短波</td><td align="center">共用，主要业务</td><td align="center">特性类似15米，但更依赖太阳活动</td></tr><tr><td align="center">28.0-29.7</td><td align="center">10米</td><td align="center">短波</td><td align="center">专用</td><td align="center">变化大，太阳活动高年可开通神奇的远距离通信</td></tr><tr><td align="center">50-54</td><td align="center">6米</td><td align="center">米波 VHF</td><td align="center">共用，主要业务</td><td align="center">“魔术波段”，兼有视距传播和偶尔的远距离传播</td></tr><tr><td align="center">144-148</td><td align="center">2米</td><td align="center">米波 VHF</td><td align="center">共用，主要业务</td><td align="center">本地通信主力，广泛用于FM语音、中继台、数字模式</td></tr><tr><td align="center">430-440</td><td align="center">70厘米</td><td align="center">分米波 UHF</td><td align="center">共用，次要业务</td><td align="center">本地通信主力，穿透力强，常用于中继台、卫星通信</td></tr></tbody></table>]]></content>
+      
+      
+      <categories>
+          
+          <category> 梦啥说啥 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Research </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>【转载】MNVT-31A数码夜视仪组装图文教程</title>
       <link href="/posts/ecfffd82.html"/>
       <url>/posts/ecfffd82.html</url>
@@ -47,9 +72,9 @@
       
         <tags>
             
-            <tag> git </tag>
-            
             <tag> Code </tag>
+            
+            <tag> git </tag>
             
         </tags>
       
@@ -287,9 +312,9 @@
       
         <tags>
             
-            <tag> Code </tag>
-            
             <tag> Algorithm </tag>
+            
+            <tag> Code </tag>
             
         </tags>
       
@@ -314,9 +339,9 @@
       
         <tags>
             
-            <tag> Code </tag>
-            
             <tag> Algorithm </tag>
+            
+            <tag> Code </tag>
             
         </tags>
       
@@ -378,6 +403,17 @@
     
     
     <entry>
+      <title>关于此网站</title>
+      <link href="/about/index.html"/>
+      <url>/about/index.html</url>
+      
+        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>文章分类</title>
       <link href="/categories/index.html"/>
       <url>/categories/index.html</url>
@@ -400,17 +436,6 @@
     
     
     <entry>
-      <title>标签</title>
-      <link href="/tags/index.html"/>
-      <url>/tags/index.html</url>
-      
-        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li><li>Research</li><li>DIY</li></ul>]]></content>
-      
-    </entry>
-    
-    
-    
-    <entry>
       <title></title>
       <link href="/css/custom.css"/>
       <url>/css/custom.css</url>
@@ -422,11 +447,11 @@
     
     
     <entry>
-      <title>关于此网站</title>
-      <link href="/about/index.html"/>
-      <url>/about/index.html</url>
+      <title>标签</title>
+      <link href="/tags/index.html"/>
+      <url>/tags/index.html</url>
       
-        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
+        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li><li>Research</li><li>DIY</li></ul>]]></content>
       
     </entry>
     
