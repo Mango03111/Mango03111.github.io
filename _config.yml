@@ -138,6 +138,9 @@ magnet:
     - name: 梦啥说啥
       display_name: 梦啥说啥
       icon: 💡
+    - name: 音乐
+      display_name: Mango 音乐小屋
+      icon: 🎸
   color_setting:
     text_color: black
     text_hover_color: white
