@@ -8,7 +8,7 @@ categories:
   - 教程
 abbrlink: '77789012'
 date: 2026-02-09 16:10:33
-cover: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260316/sjqp/1024X1024/image.png
+cover: 
 top_img: transparent
 ---
 
