@@ -122,7 +122,7 @@ error_img:
 error_404:
   enable: true
   subtitle: 'Page Not Found'
-  background: /img/error-page.png
+  background: /img/404-Error.jpg
 
 wowjs:
   enable: true #控制动画开关。true是打开，false是关闭
