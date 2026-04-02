@@ -450,22 +450,22 @@
     
     
     <entry>
-      <title></title>
-      <link href="/css/custom.css"/>
-      <url>/css/custom.css</url>
+      <title>标签</title>
+      <link href="/tags/index.html"/>
+      <url>/tags/index.html</url>
       
-        <content type="html"><![CDATA[/*停止头像旋转*/#aside-content .card-info .card-info-social-icons .social-icon :hover {    transform: scale(1.5);}#aside-content .avatar-img :hover {    transform: none;}/* 全局宽度 */.layout {    max-width: 1400px;}/* 侧边卡片栏宽度 */.aside-content {    max-width: 318px;    min-width: 300px;}/* 平板尺寸自适应(不启用侧边栏宽度限制) */@media screen and (max-width: 900px) {    .aside-content {        max-width: none !important;        padding: 0 5px 0 5px;    }}/* 文章和侧边栏卡片的毛玻璃效果 *//* 明亮模式 */#body-wrap #recent-posts>.recent-post-item,#body-wrap .recent-post-item,#body-wrap #aside-content .card-widget,#body-wrap .layout>div:first-child:not(.recent-posts),#body-wrap #nav .menus_items .menus_item .menus_item_child,#body-wrap #pagination .page-number:not(.current),#body-wrap #pagination .extend,#page-header #post {    background: rgba(255, 255, 255, 0.85);    backdrop-filter: blur(2px);    -webkit-backdrop-filter: blur(2px);    /* border: 1px solid rgba(255, 255, 255, 0.85); */    box-shadow: 0 8px 16px -4px rgba(138, 138, 138, 0.15);    transition: background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;}#body-wrap #pagination .page-number:not(.current):hover,#body-wrap #pagination .extend:hover {    background: #ff7142d2;    border-color: #ff7142d2;    color: #fff;}/* 夜间模式 */html[data-theme="dark"] #body-wrap #recent-posts>.recent-post-item,html[data-theme="dark"] #body-wrap .recent-post-item,html[data-theme="dark"] #body-wrap #aside-content .card-widget,html[data-theme="dark"] #body-wrap .layout>div:first-child:not(.recent-posts),html[data-theme="dark"] #body-wrap #nav .menus_items .menus_item .menus_item_child,html[data-theme="dark"] #body-wrap #pagination .page-number:not(.current),html[data-theme="dark"] #body-wrap #pagination .extend,html[data-theme="dark"] #page-header #post {    background: rgba(30, 30, 30, 0.7);    border: 1px solid rgba(255, 255, 255, 0.08);    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);}/* 修复移动端毛玻璃效果 */@media screen and (max-width: 768px) {    #body-wrap * {        backdrop-filter: none !important;        -webkit-backdrop-filter: none !important;    }}]]></content>
+        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li><li>Research</li><li>DIY</li></ul>]]></content>
       
     </entry>
     
     
     
     <entry>
-      <title>标签</title>
-      <link href="/tags/index.html"/>
-      <url>/tags/index.html</url>
+      <title></title>
+      <link href="/css/custom.css"/>
+      <url>/css/custom.css</url>
       
-        <content type="html"><![CDATA[<ul><li>Markdown</li><li>AI</li><li>Algorithm</li><li>Blog</li><li>git</li><li>Code</li><li>Research</li><li>DIY</li></ul>]]></content>
+        <content type="html"><![CDATA[/*停止头像旋转*/#aside-content .card-info .card-info-social-icons .social-icon :hover {    transform: scale(1.5);}#aside-content .avatar-img :hover {    transform: none;}/* 全局宽度 */.layout {    max-width: 1400px;}/* 侧边卡片栏宽度 */.aside-content {    max-width: 318px;    min-width: 300px;}/* 平板尺寸自适应(不启用侧边栏宽度限制) */@media screen and (max-width: 900px) {    .aside-content {        max-width: none !important;        padding: 0 5px 0 5px;    }}/* 文章和侧边栏卡片的毛玻璃效果 *//* 明亮模式 */#body-wrap #recent-posts>.recent-post-item,#body-wrap .recent-post-item,#body-wrap #aside-content .card-widget,#body-wrap .layout>div:first-child:not(.recent-posts),#body-wrap #nav .menus_items .menus_item .menus_item_child,#body-wrap #pagination .page-number:not(.current),#body-wrap #pagination .extend,#page-header #post {    background: rgba(255, 255, 255, 0.85);    backdrop-filter: blur(2px);    -webkit-backdrop-filter: blur(2px);    /* border: 1px solid rgba(255, 255, 255, 0.85); */    box-shadow: 0 8px 16px -4px rgba(138, 138, 138, 0.15);    transition: background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;}#body-wrap #pagination .page-number:not(.current):hover,#body-wrap #pagination .extend:hover {    background: #ff7142d2;    border-color: #ff7142d2;    color: #fff;}/* 夜间模式 */html[data-theme="dark"] #body-wrap #recent-posts>.recent-post-item,html[data-theme="dark"] #body-wrap .recent-post-item,html[data-theme="dark"] #body-wrap #aside-content .card-widget,html[data-theme="dark"] #body-wrap .layout>div:first-child:not(.recent-posts),html[data-theme="dark"] #body-wrap #nav .menus_items .menus_item .menus_item_child,html[data-theme="dark"] #body-wrap #pagination .page-number:not(.current),html[data-theme="dark"] #body-wrap #pagination .extend,html[data-theme="dark"] #page-header #post {    background: rgba(30, 30, 30, 0.7);    border: 1px solid rgba(255, 255, 255, 0.08);    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);}/* 修复移动端毛玻璃效果 */@media screen and (max-width: 768px) {    #body-wrap * {        backdrop-filter: none !important;        -webkit-backdrop-filter: none !important;    }}]]></content>
       
     </entry>
     
