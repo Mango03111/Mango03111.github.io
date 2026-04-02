@@ -1,0 +1,376 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>友情链接 | SuperBigMango</title><meta name="author" content="Mango"><meta name="copyright" content="Mango"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="😎以上所有内容仅限学习交流使用！！">
+<meta property="og:type" content="website">
+<meta property="og:title" content="友情链接">
+<meta property="og:url" content="https://superbigmango.top/link/">
+<meta property="og:site_name" content="SuperBigMango">
+<meta property="og:description" content="😎以上所有内容仅限学习交流使用！！">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://superbigmango.top/img/mango_avatar.png">
+<meta property="article:published_time" content="2026-02-21T12:55:17.000Z">
+<meta property="article:modified_time" content="2026-03-17T15:29:07.264Z">
+<meta property="article:author" content="Mango">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://superbigmango.top/img/mango_avatar.png"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://superbigmango.top/link/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)')
+          const mediaQueryLight = window.matchMedia('(prefers-color-scheme: light)')
+
+          if (theme === undefined) {
+            if (mediaQueryLight.matches) activateLightMode()
+            else if (mediaQueryDark.matches) activateDarkMode()
+            else {
+              const hour = new Date().getHours()
+              const isNight = hour <= 6 || hour >= 18
+              isNight ? activateDarkMode() : activateLightMode()
+            }
+            mediaQueryDark.addEventListener('change', () => {
+              if (saveToLocal.get('theme') === undefined) {
+                e.matches ? activateDarkMode() : activateLightMode()
+              }
+            })
+          } else {
+            theme === 'light' ? activateLightMode() : activateDarkMode()
+          }
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":800,"highlightFullpage":true,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: true
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '友情链接',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'page'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end start --><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/animate.min.css" media="print" onload="this.media='screen'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/background_01.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">8</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="page type-link" id="body-wrap"><header class="not-home-page" id="page-header" style="background: transparent;"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">SuperBigMango</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="page-site-info"><h1 id="site-title">友情链接</h1></div></header><main class="layout" id="content-inner"><div id="page"><div class="container" id="article-container"><div class="flink"><h2 id="友情链接"><a href="#友情链接" class="headerlink" title="友情链接"></a>友情链接</h2> <div class="flink-list">
+  <div class="flink-list-item">
+    <a href="https://www.meemx.com/" title="觅梦随笔" target="_blank">
+      <div class="flink-item-icon">
+        <img class="no-lightbox" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.meemx.com/img/author-avatar_hu_2d6cad33cfd35305.jpg" onerror='this.onerror=null;this.src="/img/friend_404.gif"' alt="觅梦随笔" />
+      </div>
+      <div class="flink-item-name">觅梦随笔</div>
+      <div class="flink-item-desc" title="大师兄的知识分享平台~">大师兄的知识分享平台~</div>
+    </a>
+  </div>
+  <div class="flink-list-item">
+    <a href="https://www.luotian.cyou" title="洛天的小窝" target="_blank">
+      <div class="flink-item-icon">
+        <img class="no-lightbox" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.luotian.cyou/img/core/id.webp" onerror='this.onerror=null;this.src="/img/friend_404.gif"' alt="洛天的小窝" />
+      </div>
+      <div class="flink-item-name">洛天的小窝</div>
+      <div class="flink-item-desc" title="我们生而眺望">我们生而眺望</div>
+    </a>
+  </div>
+  <div class="flink-list-item">
+    <a href="https://www.mr-wu.cn/" title="吴川斌的博客" target="_blank">
+      <div class="flink-item-icon">
+        <img class="no-lightbox" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.mr-wu.cn/favicon.ico" onerror='this.onerror=null;this.src="/img/friend_404.gif"' alt="吴川斌的博客" />
+      </div>
+      <div class="flink-item-name">吴川斌的博客</div>
+      <div class="flink-item-desc" title="嵌入式、智能硬件技术分享">嵌入式、智能硬件技术分享</div>
+    </a>
+  </div></div><h2 id="学习网站"><a href="#学习网站" class="headerlink" title="学习网站"></a>学习网站</h2> <div class="flink-list">
+  <div class="flink-list-item">
+    <a href="https://gfsoso.vygc.top/" title="谷粉学术" target="_blank">
+      <div class="flink-item-icon">
+        <img class="no-lightbox" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.gufenxueshu.net/index_files/tubiao/icon/scitgico2.png" onerror='this.onerror=null;this.src="/img/friend_404.gif"' alt="谷粉学术" />
+      </div>
+      <div class="flink-item-name">谷粉学术</div>
+      <div class="flink-item-desc" title="墙内学术搜索平台（不稳定）">墙内学术搜索平台（不稳定）</div>
+    </a>
+  </div>
+  <div class="flink-list-item">
+    <a href="https://deepwiki.com/" title="DeepWiki" target="_blank">
+      <div class="flink-item-icon">
+        <img class="no-lightbox" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://deepwiki.com/favicon.ico" onerror='this.onerror=null;this.src="/img/friend_404.gif"' alt="DeepWiki" />
+      </div>
+      <div class="flink-item-name">DeepWiki</div>
+      <div class="flink-item-desc" title="AI驱动的知识库平台">AI驱动的知识库平台</div>
+    </a>
+  </div>
+  <div class="flink-list-item">
+    <a href="https://leetcode.cn/" title="力扣" target="_blank">
+      <div class="flink-item-icon">
+        <img class="no-lightbox" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://leetcode.cn/favicon.ico" onerror='this.onerror=null;this.src="/img/friend_404.gif"' alt="力扣" />
+      </div>
+      <div class="flink-item-name">力扣</div>
+      <div class="flink-item-desc" title="编程题库，算法练习平台">编程题库，算法练习平台</div>
+    </a>
+  </div></div><h2 id="工具网站"><a href="#工具网站" class="headerlink" title="工具网站"></a>工具网站</h2><div class="flink-desc">生产力好帮手</div> <div class="flink-list">
+  <div class="flink-list-item">
+    <a href="https://convertio.co/zh/" title="Convertio" target="_blank">
+      <div class="flink-item-icon">
+        <img class="no-lightbox" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://static.convertio.co/img/apple-touch-icon-180x180-precomposed.png" onerror='this.onerror=null;this.src="/img/friend_404.gif"' alt="Convertio" />
+      </div>
+      <div class="flink-item-name">Convertio</div>
+      <div class="flink-item-desc" title="多用途文件格式转换">多用途文件格式转换</div>
+    </a>
+  </div>
+  <div class="flink-list-item">
+    <a href="https://www.avaide.com/zh/image-upscaler/" title="Avaide" target="_blank">
+      <div class="flink-item-icon">
+        <img class="no-lightbox" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.avaide.com/images/image-upscaler/image-upscaler-icon.png" onerror='this.onerror=null;this.src="/img/friend_404.gif"' alt="Avaide" />
+      </div>
+      <div class="flink-item-name">Avaide</div>
+      <div class="flink-item-desc" title="AI图像超分辨率增强工具">AI图像超分辨率增强工具</div>
+    </a>
+  </div>
+  <div class="flink-list-item">
+    <a href="https://www.3dwhere.com/" title="迪威模型" target="_blank">
+      <div class="flink-item-icon">
+        <img class="no-lightbox" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://www.3dwhere.com/Favicon.ico" onerror='this.onerror=null;this.src="/img/friend_404.gif"' alt="迪威模型" />
+      </div>
+      <div class="flink-item-name">迪威模型</div>
+      <div class="flink-item-desc" title="CAD模型资源平台">CAD模型资源平台</div>
+    </a>
+  </div>
+  <div class="flink-list-item">
+    <a href="https://makerworld.com.cn/zh" title="MakerWorld" target="_blank">
+      <div class="flink-item-icon">
+        <img class="no-lightbox" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://makerworld.com.cn/favicon.ico" onerror='this.onerror=null;this.src="/img/friend_404.gif"' alt="MakerWorld" />
+      </div>
+      <div class="flink-item-name">MakerWorld</div>
+      <div class="flink-item-desc" title="3D打印模型资源平台">3D打印模型资源平台</div>
+    </a>
+  </div></div><h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Mango</div><div class="author-info-description">给时光以生命，给岁月以文明</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">8</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Mango03111" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:yixuanhao_xidian@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #24292e;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到Big Mango的空间！</div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/posts/e000f6cc.html" title="【吉他谱】最后一页吉他谱_江语晨/洛尘鞅_C调弹唱谱"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/p4lG/1854X1080/guitar02.jpg" onerror="this.onerror=null;this.src='/img/4041.png'" alt="【吉他谱】最后一页吉他谱_江语晨/洛尘鞅_C调弹唱谱"/></a><div class="content"><a class="title" href="/posts/e000f6cc.html" title="【吉他谱】最后一页吉他谱_江语晨/洛尘鞅_C调弹唱谱">【吉他谱】最后一页吉他谱_江语晨/洛尘鞅_C调弹唱谱</a><time datetime="2026-03-30T03:03:46.000Z" title="发表于 2026-03-30 11:03:46">2026-03-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/e8399571.html" title="业余无线电（A类）复习笔记"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260323/uHZq/2560X1670/radio.jpeg" onerror="this.onerror=null;this.src='/img/4041.png'" alt="业余无线电（A类）复习笔记"/></a><div class="content"><a class="title" href="/posts/e8399571.html" title="业余无线电（A类）复习笔记">业余无线电（A类）复习笔记</a><time datetime="2026-03-23T03:36:55.000Z" title="发表于 2026-03-23 11:36:55">2026-03-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/ecfffd82.html" title="【转载】MNVT-31A数码夜视仪组装图文教程"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260317/0U2g/300X300/17737376693958601f8bc05ce87e4c7db6cab07cc4eb016e4b09d.jpg" onerror="this.onerror=null;this.src='/img/4041.png'" alt="【转载】MNVT-31A数码夜视仪组装图文教程"/></a><div class="content"><a class="title" href="/posts/ecfffd82.html" title="【转载】MNVT-31A数码夜视仪组装图文教程">【转载】MNVT-31A数码夜视仪组装图文教程</a><time datetime="2026-03-17T08:48:15.000Z" title="发表于 2026-03-17 16:48:15">2026-03-17</time></div></div></div></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/git/" style="font-size: 1.23em; color: #999ea6">git</a> <a href="/tags/Blog/" style="font-size: 1.37em; color: #99a4b2">Blog</a> <a href="/tags/Markdown/" style="font-size: 1.23em; color: #999ea6">Markdown</a> <a href="/tags/AI/" style="font-size: 1.37em; color: #99a4b2">AI</a> <a href="/tags/Research/" style="font-size: 1.37em; color: #99a4b2">Research</a> <a href="/tags/Code/" style="font-size: 1.5em; color: #99a9bf">Code</a> <a href="/tags/DIY/" style="font-size: 1.1em; color: #999">DIY</a> <a href="/tags/Algorithm/" style="font-size: 1.23em; color: #999ea6">Algorithm</a></div></div><div class="card-widget card-archives">
+    <div class="item-headline">
+      <i class="fas fa-archive"></i>
+      <span>归档</span>
+      
+    </div>
+  
+    <ul class="card-archive-list">
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/03/">
+            <span class="card-archive-list-date">
+              三月 2026
+            </span>
+            <span class="card-archive-list-count">6</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/02/">
+            <span class="card-archive-list-date">
+              二月 2026
+            </span>
+            <span class="card-archive-list-count">6</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/01/">
+            <span class="card-archive-list-date">
+              一月 2026
+            </span>
+            <span class="card-archive-list-count">5</span>
+          </a>
+        </li>
+      
+    </ul>
+  </div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站信息</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">17</div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">21.1k</div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastPushDate="2026-04-02T04:02:11.258Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer" style="background: transparent;"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Mango</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div><div class="footer_custom_text"><p><a style="margin-inline:5px" target="_blank" href="https://github.com/"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&logo=GitHub" title="本站项目由Github托管"></a><a style="margin-inline:5px" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&logo=Claris" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可"></a></p></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button><button id="go-down" type="button" title="直达底部" onclick="btf.scrollToDest(document.body.scrollHeight, 500)"><i class="fas fa-arrow-down"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.iife.min.js"></script><div class="js-pjax"></div><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      true
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div><!-- hexo injector body_end start --> <script data-pjax>if(document.getElementById('recent-posts') && (location.pathname ==='/'|| '/' ==='all')){
+    var parent = document.getElementById('recent-posts');
+    var child = '<div class="recent-post-item" style="width:100%;height: auto"><div id="catalog_magnet"><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/教程/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🏫 Mango 教程集合 (7)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/学习笔记/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">📖 Mango 学习笔记 (3)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/计算机网络/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">💻 计算机网络 (1)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/梦啥说啥/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">💡 梦啥说啥 (3)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/音乐/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🎸 Mango 音乐小屋 (1)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item" style="visibility: hidden"></div><a class="magnet_link_more"  href="https://superbigmango.top/categories" style="flex:1;text-align: center;margin-bottom: 10px;">查看更多...</a></div></div>';
+    console.log('已挂载magnet')
+    parent.insertAdjacentHTML("afterbegin",child)}
+     </script><style>#catalog_magnet{flex-wrap: wrap;display: flex;width:100%;justify-content:space-between;padding: 10px 10px 0 10px;align-content: flex-start;}.magnet_item{flex-basis: calc(33.333333333333336% - 5px);background: #f2f2f2;margin-bottom: 10px;border-radius: 8px;transition: all 0.2s ease-in-out;}.magnet_item:hover{background: #792090}.magnet_link_more{color:#555}.magnet_link{color:black}.magnet_link:hover{color:white}@media screen and (max-width: 600px) {.magnet_item {flex-basis: 100%;}}.magnet_link_context{display:flex;padding: 10px;font-size:16px;transition: all 0.2s ease-in-out;}.magnet_link_context:hover{padding: 10px 20px;}</style>
+    <style></style><div class="js-pjax"><script async="async">var arr = document.getElementsByClassName('recent-post-item');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeInUp');
+    arr[i].setAttribute('data-wow-duration', '600ms');
+    arr[i].setAttribute('data-wow-delay', '50ms');
+    arr[i].setAttribute('data-wow-offset', '50');
+    arr[i].setAttribute('data-wow-iteration', '1');
+  }</script><script async="async">var arr = document.getElementsByClassName('aside-content');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeInUp');
+    arr[i].setAttribute('data-wow-duration', '450ms');
+    arr[i].setAttribute('data-wow-delay', '50ms');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script><script async="async">var arr = document.getElementsByClassName('container post-content');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeIn');
+    arr[i].setAttribute('data-wow-duration', '1200ms');
+    arr[i].setAttribute('data-wow-delay', '');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script></div><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow.min.js"></script><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow_init.js"></script><!-- hexo injector body_end end --></body></html>
