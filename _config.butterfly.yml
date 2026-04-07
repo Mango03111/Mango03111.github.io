@@ -110,19 +110,19 @@ cover:
      - https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/u757/3840X1620/cover02.jpg
      - https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/SGAx/3000X2249/cover03.jpg
      - https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png
-     - https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/k4lT/3840X2160/cover05.jpg
+    #  - https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/k4lT/3840X2160/cover05.jpg
      - https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png
 
 # Replace Broken Images
 error_img:
-  flink: /img/friend_404.gif
+  flink: /img/67-meme-67.gif
   post_page: /img/4041.png
 
 # A simple 404 page
 error_404:
   enable: true
   subtitle: 'Page Not Found'
-  background: /img/error-page.png
+  background: /img/404-Error.jpg
 
 wowjs:
   enable: true #控制动画开关。true是打开，false是关闭
