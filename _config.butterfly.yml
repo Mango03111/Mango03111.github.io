@@ -168,6 +168,34 @@ post_meta:
     tags: true
     label: true
 
+#categories ####注意！！！###此内容需要与hexo index页面内容同步！！！
+categories: 
+  学习笔记: #category/tag名称
+    desc: 各项技术与课程学习的内容记录 #卡片描述
+    img: /img/4041.png #卡片封面
+    color1: "#9F96B8" #卡片正面颜色以及背面渐变色1
+    color2: "#C8BFD9" #卡片背面渐变色2
+  教程: 
+    desc: 软件安装、工具使用 
+    color1: "#9F96B8" 
+    color2: "#C8BFD9" 
+  计算机网络: 
+    desc: 吃饭的家伙事儿 
+    color1: "#9F96B8" 
+    color2: "#C8BFD9" 
+  算法: 
+    desc: 各类算法思路与代码 
+    color1: "#9F96B8" 
+    color2: "#C8BFD9" 
+  梦啥说啥: 
+    desc: 字面意思：梦到啥就说啥
+    color1: "#9F96B8" 
+    color2: "#C8BFD9" 
+  音乐: 
+    desc: 主要是吉他谱（方便我滚动看谱）
+    color1: "#9F96B8" 
+    color2: "#C8BFD9" 
+
 # --------------------------------------
 # Index page settings
 # --------------------------------------
