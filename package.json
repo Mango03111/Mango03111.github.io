@@ -17,6 +17,7 @@
     "hexo-abbrlink": "^2.2.1",
     "hexo-butterfly-wowjs": "^1.0.5",
     "hexo-deployer-git": "^4.0.0",
+    "hexo-electric-clock": "^1.1.0",
     "hexo-generator-archive": "^2.0.0",
     "hexo-generator-category": "^2.0.0",
     "hexo-generator-index": "^3.0.0",
