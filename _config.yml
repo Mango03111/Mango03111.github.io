@@ -155,7 +155,7 @@ magnet:
 
 electric_clock:
   priority: 5
-  enable: true
+  enable: false
   enable_page: /
   layout:
     type: class
