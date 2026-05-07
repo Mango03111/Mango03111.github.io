@@ -4,6 +4,35 @@
   
     
     <entry>
+      <title>MRC 与 SRv6：让 10 万 GPU 级 AI 超算网络在故障中继续训练</title>
+      <link href="/posts/1a4047db.html"/>
+      <url>/posts/1a4047db.html</url>
+      
+        <content type="html"><![CDATA[<blockquote><p>本文改写自 OpenAI 官方工程博客《Supercomputer networking to accelerate large scale AI training》与论文《Resilient AI Supercomputer Networking using MRC and SRv6》。目标是用博客化的方式解释：为什么大规模 AI 训练需要新的网络协议，MRC 如何与多平面拓扑、SRv6 源路由一起，把“网络故障”从训练中断事件变成可被系统自动绕开的背景噪声。</p></blockquote><p>论文链接：<br><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/UowK/Resilient%2520AI%2520Supercomputer%2520Networking%2520using%2520MRC%2520and%2520SRv6.pdf" alt="Resilient%20AI%20Supercomputer%20Networking%20using%20MRC%20and%20SRv6.pdf"></p><h2 id="问题不是平均带宽，而是最慢那一次通信"><a href="#问题不是平均带宽，而是最慢那一次通信" class="headerlink" title="问题不是平均带宽，而是最慢那一次通信"></a>问题不是平均带宽，而是最慢那一次通信</h2><p>在同步预训练中，成千上万甚至十万级 GPU 按训练 step 锁步推进。每个 step 中，GPU 之间要执行数据并行、张量并行、流水线并行、专家并行等多种通信。理想状态下，通信被尽量隐藏在计算之后；但现实里，只要某一次传输成为“长尾”，整个 step 都可能被拖慢。</p><p>这也是大规模训练网络最棘手的地方：平均吞吐量很高并不够，最慢的那条路径、最晚到达的那个包，才决定训练作业的体验。随着集群规模扩大，链路 flap、交换机异常、流冲突、incast 拥塞都会从偶发问题变成常态背景噪声。传统做法通常依赖动态路由和 lossless Ethernet，但在百 K GPU 级训练网络中，这些机制本身也会带来复杂性和收敛延迟。</p><p>OpenAI 与 Microsoft、AMD、Broadcom、NVIDIA 等合作提出的 MRC，也就是 Multipath Reliable Connection，试图把问题换一个角度解决：不要让单个流被固定在单条路径上，而是让一个 RDMA 连接主动跨很多路径发包，并且在微秒级绕开坏路径。</p><h2 id="第一层改变：从单平面-Clos-到多平面网络"><a href="#第一层改变：从单平面-Clos-到多平面网络" class="headerlink" title="第一层改变：从单平面 Clos 到多平面网络"></a>第一层改变：从单平面 Clos 到多平面网络</h2><p>传统 800Gb&#x2F;s 单平面设计里，一个 51.2Tb&#x2F;s 交换机大约可以提供 64 个 800Gb&#x2F;s 端口。要连接 10 万 GPU 并保持全双分带宽，网络往往需要三层甚至四层 Clos，路径更长、光模块和交换机更多，故障面也更大。</p><p>MRC 论文中的核心拓扑思路是：把一个 800Gb&#x2F;s NIC 拆成 8 条 100Gb&#x2F;s 链路，分别接入 8 个并行的网络平面。这样，同样的 51.2Tb&#x2F;s 交换机可以提供 512 个 100Gb&#x2F;s 端口，网络可以用两层交换机连接约 131,072 个 NIC&#x2F;GPU。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/7fri/740X735/paper-fig1-multiplane-topology.png" alt="740X735/paper-fig1-multiplane-topology.png"></p><p>这种多平面设计带来几个直接好处：路径经过的交换机更少，延迟更低；T0 本地可达的节点更多，更容易利用局部性；满带宽所需的光模块与交换机数量更少；更重要的是，某个 T0-T1 链路失败只影响很小一部分容量，而不是把某个训练通信直接打断。</p><p>OpenAI 官方文章也用一个更直观的图解释了这个变化：多平面网络不是把所有鸡蛋放在一个 800G 篮子里，而是把一块 NIC 的能力分散到多个独立平面中，让网络天然具备绕路空间。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/yyyE/802X435/image.png" alt="802X435/image.png"></p><h2 id="第二层改变：MRC-把一个连接喷洒到上百条路径"><a href="#第二层改变：MRC-把一个连接喷洒到上百条路径" class="headerlink" title="第二层改变：MRC 把一个连接喷洒到上百条路径"></a>第二层改变：MRC 把一个连接喷洒到上百条路径</h2><p>多平面拓扑提供了路径多样性，但传统 RoCE 连接通常仍是单路径的：交换机通过 ECMP 哈希给一个流选一条路径。问题是，大量训练流同时出现时，很容易有多个大流撞到同一条链路上，形成 hot spot。对于同步训练来说，少数 hot spot 就足以制造长尾。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/1ayG/808X393/image.png" alt="808X393/image.png"></p><p>MRC 的关键动作是“packet spraying”：同一个 Queue Pair 的数据包不再走同一条路径，而是轮流使用一组 entropy value，也就是 EV。每个 EV 对应某个平面上的某条路径。典型情况下，一个 QP 会维护 128 到 256 个 EV，发送端逐包轮换，让一个 RDMA 传输自然分布到多个平面和多条路径上。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/FkWJ/808X393/image.png" alt="808X393/image.png"></p><p>这会带来一个新要求：包会乱序到达，接收端必须能立即把包放到正确内存位置。MRC 的做法是，每个数据包都携带 RDMA 虚拟地址和 remote key，接收 NIC 不必等待顺序重组，就能直接写入目标内存。</p><p>同时，MRC 放弃 PFC 依赖，运行在 best-effort Ethernet 上。为了让丢包恢复足够快，它引入 SACK&#x2F;NACK 选择性重传；为了区分“拥塞导致的包被丢”和“路径真的坏了”，它还使用 packet trimming：当交换机本来要丢包时，剪掉 payload，只转发 header 到接收端，让接收端立刻发 NACK，请求重传。</p><h2 id="第三层改变：用-SRv6-静态源路由替代动态路由"><a href="#第三层改变：用-SRv6-静态源路由替代动态路由" class="headerlink" title="第三层改变：用 SRv6 静态源路由替代动态路由"></a>第三层改变：用 SRv6 静态源路由替代动态路由</h2><p>如果 MRC 已经能检测坏路径并自动避开，交换机是否还需要动态路由协议来重新计算路径？论文给出的答案很激进：在 MRC 后端网络中，动态路由可能弊大于利。</p><p>原因是，如果终端侧 MRC 在做自适应负载均衡，交换机侧动态路由也在根据故障改变 ECMP 集合，两套机制会互相干扰。MRC 刚刚把坏路径移出，动态路由又改变了哈希映射，反而让负载均衡状态更难理解。</p><p>因此，OpenAI 的方案是让数据包使用 IPv6 Segment Routing，也就是 SRv6。发送端把路径中的交换机标识编码进 IPv6 目的地址，交换机只按静态表逐跳转发。路径坏了，MRC 直接停止使用对应 EV；交换机不需要重新收敛。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/CD7C/821X399/image.png" alt="821X399/image.png"></p><p>论文中还进一步解释了 EV 与 SRv6 地址之间的映射：在 QP 启动时，NIC 先根据目的地址生成一个 SRv6 模板；发包时，再把 EV 中的 plane、T0 uplink 等字段填入 uSID 序列，形成最终 SRv6 目的地址。这样，EV 不只是“随机哈希值”，而是一个可解释、可探测、可映射到物理路径的压缩路径描述。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/Gevb/1540X560/paper-fig2-3-srv6-forwarding-mapping.png" alt="1540X560/paper-fig2-3-srv6-forwarding-mapping.png"></p><h2 id="为什么这对运维很重要：坏链路不再需要立刻抢修"><a href="#为什么这对运维很重要：坏链路不再需要立刻抢修" class="headerlink" title="为什么这对运维很重要：坏链路不再需要立刻抢修"></a>为什么这对运维很重要：坏链路不再需要立刻抢修</h2><p>过去，训练网络中的 flappy link 往往需要运维团队快速介入：下线链路、等待动态路由收敛、确认训练是否受影响。MRC 改变了优先级。论文中提到，在 Cluster A 的大规模同步预训练期间，T0-T1 链路每分钟持续出现 flap，但训练几乎不受影响。MRC 会在对应 EV 丢包后移除该路径，并通过其他路径选择性重传。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/IGYI/1540X495/paper-fig4-5-startup-losses-link-flaps.png" alt="1540X495/paper-fig4-5-startup-losses-link-flaps.png"></p><p>这让运维策略从“故障必须马上消失”变成“系统先绕开故障，人再按优先级修复”。更妙的是，SRv6 的确定性路径让 Clustermapper 这样的探测系统更容易定位问题：探测包走的路径和 MRC 数据包一致，不会被 ECMP 哈希或动态路由变化扰动。</p><h2 id="生产结果：50K-GPU-作业没有因为链路-flap-崩溃"><a href="#生产结果：50K-GPU-作业没有因为链路-flap-崩溃" class="headerlink" title="生产结果：50K GPU 作业没有因为链路 flap 崩溃"></a>生产结果：50K GPU 作业没有因为链路 flap 崩溃</h2><p>论文给了一个很有代表性的生产事件：在 OpenAI 的 50K GPU 预训练作业中，一个 T0 交换机上的光模块发生 glitch，四条连接到不同节点的 NIC-T0 链路快速 flap，其中三个节点当时处于训练作业中。由于同步训练由最慢节点决定整体进度，作业吞吐在这分钟内下降约 25%，但随后立即恢复。更关键的是：作业没有崩溃，QP 没有失败，受影响节点也不需要被踢出作业。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/owxZ/730X610/paper-fig6-7-nic-t0-flap.png" alt="730X610/paper-fig6-7-nic-t0-flap.png"></p><p>另一个例子是 75K GPU 预训练中 T1 交换机故障与重启。论文显示，当某个 T1 停止转发时，约四分之一 QP 受影响并丢了约 58 万个包，但 MRC 很快映射掉坏路径；真正 reboot 时，对作业吞吐几乎没有影响。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/STfR/740X435/paper-fig8-t1-failure-reboot.png" alt="740X435/paper-fig8-t1-failure-reboot.png"></p><p>OpenAI 官方博客把这个变化总结得很直白：以前重启交换机需要小心协调训练作业，现在许多链路修复甚至可以在链路仍处于服务状态时进行；如果链路足够好，MRC 会使用它；如果不够好，MRC 会避开它，直到探测显示它恢复。</p><h2 id="测试结果：不是“能跑”，而是能在坏环境里继续跑"><a href="#测试结果：不是“能跑”，而是能在坏环境里继续跑" class="headerlink" title="测试结果：不是“能跑”，而是能在坏环境里继续跑"></a>测试结果：不是“能跑”，而是能在坏环境里继续跑</h2><p>论文中的 controlled testbed 进一步展示了 MRC 的行为。Cluster B 上，T0-local 的 2B 消息单向延迟约 5.09 微秒，Cross-T1 约 6.54 微秒；32KB 消息带宽约 770Gb&#x2F;s，约为理论峰值的 96%。</p><p>在链路故障实验中，NIC-T0 链路逐条下线时，吞吐随剩余平面容量逐级下降并恢复；但 T0-T1 链路故障影响小得多，因为每个 QP 分散在大量路径上。即使一次性 flap 多条 T0-T1 链路，MRC 也能快速重路由，工作负载级影响很小。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/2EDG/1540X790/paper-fig9-11-reliability-results.png" alt="1540X790/paper-fig9-11-reliability-results.png"></p><p>路径级丢包和负载均衡实验也很有意思。当某个 EV 被人为注入 20% 丢包时，MRC 会立即把该 EV 标记为 inactive，并启用备用 EV，端到端带宽保持稳定。另一个双流实验中，当两个流被挤到同一 EV 上产生 ECN 信号，MRC 会把其中一个流迁移到另一个 EV，两个流都能保持接近峰值吞吐。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/cptY/1540X770/paper-fig12-15-path-loss-loadbalancing-nccl.png" alt="1540X770/paper-fig12-15-path-loss-loadbalancing-nccl.png"></p><h2 id="与-RoCE-对比：MRC-的优势在长尾和故障恢复"><a href="#与-RoCE-对比：MRC-的优势在长尾和故障恢复" class="headerlink" title="与 RoCE 对比：MRC 的优势在长尾和故障恢复"></a>与 RoCE 对比：MRC 的优势在长尾和故障恢复</h2><p>论文没有在超大生产集群中直接 AB 比较 MRC 与 RoCE，但在小规模 testbed 中构建了相近硬件条件：RoCE 使用单平面 400Gb&#x2F;s ECMP + PFC&#x2F;DCQCN，MRC 使用四平面 4x100Gb&#x2F;s + SRv6 + best-effort Ethernet。</p><p>在 64-way ring all-reduce 中，RoCE 单 QP 会受到 ECMP 流碰撞影响，带宽通常只有理想值的一半；RoCE 通过 QP scaling 能改善，但 16 QP 仍不如 MRC 单 QP 跨 256 条路径喷洒。加入 0.1% 随机丢包后，MRC 的选择性重传还能维持较好表现，而 RoCE 性能下降明显；到 1% 丢包，二者都受到严重影响，但 MRC 仍能短时间“扛住”比 RoCE 更好的吞吐。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/0Uks/740X530/paper-fig16-17-mrc-vs-roce.png" alt="740X530/paper-fig16-17-mrc-vs-roce.png"></p><p>在 incast 场景中，MRC 还有一个很实用的优势：它不会像 PFC 那样把拥塞扩散到无关流。论文中的 7-to-1 incast + victim flow 实验显示，RoCE 即使用 DCQCN，victim flow 仍会出现明显吞吐下降；而 MRC 能几乎完美共享瓶颈链路，并避免伤害无关流。</p><p><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/98ES/1540X480/paper-fig18-incast-victim.png" alt="1540X480/paper-fig18-incast-victim.png"></p><h2 id="MRC-不是万能药，但它改变了故障模型"><a href="#MRC-不是万能药，但它改变了故障模型" class="headerlink" title="MRC 不是万能药，但它改变了故障模型"></a>MRC 不是万能药，但它改变了故障模型</h2><p>MRC 的价值不只是“更快”，而是把训练网络的故障模型从“单点故障会让作业失败”改成“绝大多数链路和部分交换机异常都能被端系统吸收”。这对大模型训练很关键，因为 GPU 时间昂贵，checkpoint restart 代价高，且越大的同步作业越容易被最慢通信放大。</p><p>当然，论文也指出仍有单点问题。例如 800Gb&#x2F;s NIC 光模块如果整体 flap，所有拆分端口都会同时丢失，QP 仍可能失败。对于 NIC-T0 高丢包但未完全 down 的灰故障，MRC 也需要依赖 Clustermapper 策略来识别并下发 denylist。换句话说，MRC 不消灭故障，而是把大量故障变成可观测、可绕开、可延后处理的问题。</p><h2 id="结语：未来-AI-集群的网络会越来越“端系统智能化”"><a href="#结语：未来-AI-集群的网络会越来越“端系统智能化”" class="headerlink" title="结语：未来 AI 集群的网络会越来越“端系统智能化”"></a>结语：未来 AI 集群的网络会越来越“端系统智能化”</h2><p>MRC、SRv6 与多平面拓扑的组合，代表了一种很清晰的方向：在 AI 训练网络里，靠交换机动态路由维护全局最优越来越困难；更可行的方式，是让 NIC&#x2F;端系统掌握路径状态，用细粒度 packet spraying 和源路由直接管理路径选择。</p><p>这也是为什么 OpenAI 将 MRC 规格通过 OCP 开放出来。大规模 AI 训练的瓶颈已经不只是 FLOPS，而是如何让海量 GPU 在故障、拥塞和维护事件中持续一起前进。MRC 的经验说明：当网络协议、拓扑和运维系统一起设计时，超大规模训练可以更可靠，也可以更简单。</p><hr><h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul><li>OpenAI Engineering Blog: “Supercomputer networking to accelerate large scale AI training”, published May 5, 2026.</li><li>Paper: “Resilient AI Supercomputer Networking using MRC and SRv6”.</li></ul>]]></content>
+      
+      
+      <categories>
+          
+          <category> 计算机网络 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> AI </tag>
+            
+            <tag> Algorithm </tag>
+            
+            <tag> Research </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>Ubuntu 24.04 下 ToDesk 远控黑屏/卡进度条问题解决记录</title>
       <link href="/posts/8da2c97d.html"/>
       <url>/posts/8da2c97d.html</url>
@@ -72,11 +101,11 @@
       
         <tags>
             
+            <tag> AI </tag>
+            
             <tag> Algorithm </tag>
             
             <tag> Code </tag>
-            
-            <tag> AI </tag>
             
         </tags>
       
@@ -101,11 +130,11 @@
       
         <tags>
             
+            <tag> AI </tag>
+            
             <tag> Algorithm </tag>
             
             <tag> Code </tag>
-            
-            <tag> AI </tag>
             
         </tags>
       
@@ -393,9 +422,9 @@
       
         <tags>
             
-            <tag> Blog </tag>
-            
             <tag> git </tag>
+            
+            <tag> Blog </tag>
             
         </tags>
       
@@ -420,9 +449,9 @@
       
         <tags>
             
-            <tag> Code </tag>
-            
             <tag> AI </tag>
+            
+            <tag> Code </tag>
             
         </tags>
       
@@ -538,17 +567,6 @@
     
     
     <entry>
-      <title></title>
-      <link href="/holidays.json"/>
-      <url>/holidays.json</url>
-      
-        <content type="html"><![CDATA[{"01-01":[{"name":"元旦","msgs":["一元复始，万象更新。","新年好，愿新的一年闪闪发光。"]},{"name":"博客生日","msgs":["本博客又长大了一岁！","代码与时光同在，见证每一次提交与成长。"]}],"01-02":[{"name":"元旦","msgs":["一元复始，万象更新。","新年好，愿新的一年闪闪发光。"]}],"01-03":[{"name":"元旦","msgs":["一元复始，万象更新。","新年好，愿新的一年闪闪发光。"]}],"01-05":[{"name":"小寒","msgs":["今日小寒，冷气积久而寒。"]}],"01-20":[{"name":"大寒","msgs":["今日大寒，岁末清寒，春之将至。"]}],"01-26":[{"name":"腊八节","msgs":["今日腊八节，愿你度过美好的一天。"]}],"01-28":[{"name":"站长生日","msgs":["祝站长 Mango 生日快乐！","岁岁常欢愉，年年皆胜意。站长破壳日快乐！"]}],"02-04":[{"name":"立春","msgs":["今日立春，万物生机萌发。","东风解冻，春日初临。"]}],"02-15":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-16":[{"name":"除夕","msgs":["今日除夕，愿你度过美好的一天。"]},{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-17":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-18":[{"name":"雨水","msgs":["今日雨水，润物细无声。","好雨知时节，当春乃发生。"]},{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-19":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-20":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-21":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-22":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-23":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"03-03":[{"name":"元宵节","msgs":["今日元宵节，愿你度过美好的一天。"]}],"03-05":[{"name":"惊蛰","msgs":["今日惊蛰，春雷乍动，万物生机盎然。"]}],"03-08":[{"name":"妇女节","msgs":["祝所有女性力量熠熠生辉。","节日快乐，做最闪亮的自己。"]}],"03-12":[{"name":"植树节","msgs":["今日植树节，愿你度过美好的一天。"]}],"03-20":[{"name":"春分","msgs":["今日春分，昼夜均而寒暑平。","草长莺飞，春意正浓。"]}],"04-04":[{"name":"清明节","msgs":["慎终追远，缅怀先辈。","燕子来时新社，梨花落后清明。"]}],"04-05":[{"name":"清明节","msgs":["慎终追远，缅怀先辈。","燕子来时新社，梨花落后清明。"]}],"04-06":[{"name":"清明节","msgs":["慎终追远，缅怀先辈。","燕子来时新社，梨花落后清明。"]}],"04-20":[{"name":"谷雨","msgs":["今日谷雨，雨生百谷，春将尽。","落花游丝白日静，鸣鸠春半雨建瓴。"]}],"05-01":[{"name":"劳动节","msgs":["致敬每一位努力奋斗的劳动者。","劳动最光荣！"]}],"05-02":[{"name":"劳动节","msgs":["致敬每一位努力奋斗的劳动者。","劳动最光荣！"]}],"05-03":[{"name":"劳动节","msgs":["致敬每一位努力奋斗的劳动者。","劳动最光荣！"]}],"05-04":[{"name":"青年节","msgs":["青春逢盛世，奋斗正当时。","五四精神，薪火相传。"]},{"name":"劳动节","msgs":["致敬每一位努力奋斗的劳动者。","劳动最光荣！"]}],"05-05":[{"name":"立夏","msgs":["今日立夏，万物至此皆长大。","南风草木香，初夏悠悠长。"]},{"name":"劳动节","msgs":["致敬每一位努力奋斗的劳动者。","劳动最光荣！"]}],"05-10":[{"name":"母亲节","msgs":["今日母亲节，愿你度过美好的一天。"]}],"05-21":[{"name":"小满","msgs":["今日小满，物至于此小得盈满。","人生最好是小满。"]}],"06-01":[{"name":"儿童节","msgs":["永葆童心，快乐无界。","愿你历尽千帆，归来仍是少年。"]}],"06-05":[{"name":"芒种","msgs":["今日芒种，连收带种，辛勤耕耘。"]}],"06-19":[{"name":"端午节","msgs":["端午安康，百病不侵。","粽叶飘香，又是一年端阳。"]}],"06-20":[{"name":"端午节","msgs":["端午安康，百病不侵。","粽叶飘香，又是一年端阳。"]}],"06-21":[{"name":"父亲节","msgs":["今日父亲节，愿你度过美好的一天。"]},{"name":"夏至","msgs":["今日夏至，白昼最长，骄阳似火。"]},{"name":"端午节","msgs":["端午安康，百病不侵。","粽叶飘香，又是一年端阳。"]}],"07-01":[{"name":"建党节","msgs":["不忘初心，牢记使命。","星火燎原，辉煌历程。"]}],"07-07":[{"name":"小暑","msgs":["今日小暑，倏忽温风至，因循小暑来。"]}],"07-23":[{"name":"大暑","msgs":["今日大暑，万物荣华，烈日炎炎。"]}],"08-01":[{"name":"建军节","msgs":["致敬最可爱的人！","岁月静好，因有人负重前行。"]}],"08-07":[{"name":"立秋","msgs":["今日立秋，云天收夏色，木叶动秋声。"]}],"08-19":[{"name":"七夕节","msgs":["星河璀璨，七夕佳节。","愿得一人心，白首不相离。"]}],"08-23":[{"name":"处暑","msgs":["今日处暑，暑气至此而止矣。"]}],"09-07":[{"name":"白露","msgs":["今日白露，露从今夜白，月是故乡明。"]}],"09-10":[{"name":"教师节","msgs":["桃李满天下，春晖遍四方。","师恩难忘，节日快乐。"]}],"09-23":[{"name":"秋分","msgs":["今日秋分，秋意浓，昼夜平。"]}],"09-25":[{"name":"中秋节","msgs":["海上生明月，天涯共此时。","中秋佳节，阖家团圆。"]}],"09-26":[{"name":"中秋节","msgs":["海上生明月，天涯共此时。","中秋佳节，阖家团圆。"]}],"09-27":[{"name":"中秋节","msgs":["海上生明月，天涯共此时。","中秋佳节，阖家团圆。"]}],"10-01":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-02":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-03":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-04":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-05":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-06":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-07":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-08":[{"name":"寒露","msgs":["今日寒露，袅袅凉风动，凄凄寒露零。"]}],"10-18":[{"name":"重阳节","msgs":["今日重阳节，愿你度过美好的一天。"]}],"10-23":[{"name":"霜降","msgs":["今日霜降，气肃而凝，露结为霜矣。"]}],"11-07":[{"name":"立冬","msgs":["今日立冬，秋去冬来，万物收藏。"]}],"11-22":[{"name":"小雪","msgs":["今日小雪，晚来天欲雪，能饮一杯无？"]}],"11-26":[{"name":"感恩节","msgs":["心怀感恩，皆是美好。","感谢生命中所有的相遇与陪伴。"]}],"12-07":[{"name":"大雪","msgs":["今日大雪，至此而雪盛也。"]}],"12-22":[{"name":"冬至","msgs":["今日冬至，阴极之至，阳气始生。"]}]}]]></content>
-      
-    </entry>
-    
-    
-    
-    <entry>
       <title>文章分类</title>
       <link href="/categories/index.html"/>
       <url>/categories/index.html</url>
@@ -560,11 +578,11 @@
     
     
     <entry>
-      <title>关于此网站</title>
-      <link href="/about/index.html"/>
-      <url>/about/index.html</url>
+      <title></title>
+      <link href="/holidays.json"/>
+      <url>/holidays.json</url>
       
-        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
+        <content type="html"><![CDATA[{"01-01":[{"name":"元旦","msgs":["一元复始，万象更新。","新年好，愿新的一年闪闪发光。"]},{"name":"博客生日","msgs":["本博客又长大了一岁！","代码与时光同在，见证每一次提交与成长。"]}],"01-02":[{"name":"元旦","msgs":["一元复始，万象更新。","新年好，愿新的一年闪闪发光。"]}],"01-03":[{"name":"元旦","msgs":["一元复始，万象更新。","新年好，愿新的一年闪闪发光。"]}],"01-05":[{"name":"小寒","msgs":["今日小寒，冷气积久而寒。"]}],"01-20":[{"name":"大寒","msgs":["今日大寒，岁末清寒，春之将至。"]}],"01-26":[{"name":"腊八节","msgs":["今日腊八节，愿你度过美好的一天。"]}],"01-28":[{"name":"站长生日","msgs":["祝站长 Mango 生日快乐！","岁岁常欢愉，年年皆胜意。站长破壳日快乐！"]}],"02-04":[{"name":"立春","msgs":["今日立春，万物生机萌发。","东风解冻，春日初临。"]}],"02-15":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-16":[{"name":"除夕","msgs":["今日除夕，愿你度过美好的一天。"]},{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-17":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-18":[{"name":"雨水","msgs":["今日雨水，润物细无声。","好雨知时节，当春乃发生。"]},{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-19":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-20":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-21":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-22":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"02-23":[{"name":"春节","msgs":["新春大吉，万事如意！","辞旧迎新，愿新年胜旧年。"]}],"03-03":[{"name":"元宵节","msgs":["今日元宵节，愿你度过美好的一天。"]}],"03-05":[{"name":"惊蛰","msgs":["今日惊蛰，春雷乍动，万物生机盎然。"]}],"03-08":[{"name":"妇女节","msgs":["祝所有女性力量熠熠生辉。","节日快乐，做最闪亮的自己。"]}],"03-12":[{"name":"植树节","msgs":["今日植树节，愿你度过美好的一天。"]}],"03-20":[{"name":"春分","msgs":["今日春分，昼夜均而寒暑平。","草长莺飞，春意正浓。"]}],"04-04":[{"name":"清明节","msgs":["慎终追远，缅怀先辈。","燕子来时新社，梨花落后清明。"]}],"04-05":[{"name":"清明节","msgs":["慎终追远，缅怀先辈。","燕子来时新社，梨花落后清明。"]}],"04-06":[{"name":"清明节","msgs":["慎终追远，缅怀先辈。","燕子来时新社，梨花落后清明。"]}],"04-20":[{"name":"谷雨","msgs":["今日谷雨，雨生百谷，春将尽。","落花游丝白日静，鸣鸠春半雨建瓴。"]}],"05-01":[{"name":"劳动节","msgs":["致敬每一位努力奋斗的劳动者。","劳动最光荣！"]}],"05-02":[{"name":"劳动节","msgs":["致敬每一位努力奋斗的劳动者。","劳动最光荣！"]}],"05-03":[{"name":"劳动节","msgs":["致敬每一位努力奋斗的劳动者。","劳动最光荣！"]}],"05-04":[{"name":"青年节","msgs":["青春逢盛世，奋斗正当时。","五四精神，薪火相传。"]},{"name":"劳动节","msgs":["致敬每一位努力奋斗的劳动者。","劳动最光荣！"]}],"05-05":[{"name":"立夏","msgs":["今日立夏，万物至此皆长大。","南风草木香，初夏悠悠长。"]},{"name":"劳动节","msgs":["致敬每一位努力奋斗的劳动者。","劳动最光荣！"]}],"05-10":[{"name":"母亲节","msgs":["今日母亲节，愿你度过美好的一天。"]}],"05-21":[{"name":"小满","msgs":["今日小满，物至于此小得盈满。","人生最好是小满。"]}],"06-01":[{"name":"儿童节","msgs":["永葆童心，快乐无界。","愿你历尽千帆，归来仍是少年。"]}],"06-05":[{"name":"芒种","msgs":["今日芒种，连收带种，辛勤耕耘。"]}],"06-19":[{"name":"端午节","msgs":["端午安康，百病不侵。","粽叶飘香，又是一年端阳。"]}],"06-20":[{"name":"端午节","msgs":["端午安康，百病不侵。","粽叶飘香，又是一年端阳。"]}],"06-21":[{"name":"父亲节","msgs":["今日父亲节，愿你度过美好的一天。"]},{"name":"夏至","msgs":["今日夏至，白昼最长，骄阳似火。"]},{"name":"端午节","msgs":["端午安康，百病不侵。","粽叶飘香，又是一年端阳。"]}],"07-01":[{"name":"建党节","msgs":["不忘初心，牢记使命。","星火燎原，辉煌历程。"]}],"07-07":[{"name":"小暑","msgs":["今日小暑，倏忽温风至，因循小暑来。"]}],"07-23":[{"name":"大暑","msgs":["今日大暑，万物荣华，烈日炎炎。"]}],"08-01":[{"name":"建军节","msgs":["致敬最可爱的人！","岁月静好，因有人负重前行。"]}],"08-07":[{"name":"立秋","msgs":["今日立秋，云天收夏色，木叶动秋声。"]}],"08-19":[{"name":"七夕节","msgs":["星河璀璨，七夕佳节。","愿得一人心，白首不相离。"]}],"08-23":[{"name":"处暑","msgs":["今日处暑，暑气至此而止矣。"]}],"09-07":[{"name":"白露","msgs":["今日白露，露从今夜白，月是故乡明。"]}],"09-10":[{"name":"教师节","msgs":["桃李满天下，春晖遍四方。","师恩难忘，节日快乐。"]}],"09-23":[{"name":"秋分","msgs":["今日秋分，秋意浓，昼夜平。"]}],"09-25":[{"name":"中秋节","msgs":["海上生明月，天涯共此时。","中秋佳节，阖家团圆。"]}],"09-26":[{"name":"中秋节","msgs":["海上生明月，天涯共此时。","中秋佳节，阖家团圆。"]}],"09-27":[{"name":"中秋节","msgs":["海上生明月，天涯共此时。","中秋佳节，阖家团圆。"]}],"10-01":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-02":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-03":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-04":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-05":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-06":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-07":[{"name":"国庆节","msgs":["祝福祖国母亲生日快乐！","繁荣昌盛，国泰民安。"]}],"10-08":[{"name":"寒露","msgs":["今日寒露，袅袅凉风动，凄凄寒露零。"]}],"10-18":[{"name":"重阳节","msgs":["今日重阳节，愿你度过美好的一天。"]}],"10-23":[{"name":"霜降","msgs":["今日霜降，气肃而凝，露结为霜矣。"]}],"11-07":[{"name":"立冬","msgs":["今日立冬，秋去冬来，万物收藏。"]}],"11-22":[{"name":"小雪","msgs":["今日小雪，晚来天欲雪，能饮一杯无？"]}],"11-26":[{"name":"感恩节","msgs":["心怀感恩，皆是美好。","感谢生命中所有的相遇与陪伴。"]}],"12-07":[{"name":"大雪","msgs":["今日大雪，至此而雪盛也。"]}],"12-22":[{"name":"冬至","msgs":["今日冬至，阴极之至，阳气始生。"]}]}]]></content>
       
     </entry>
     
@@ -582,6 +600,17 @@
     
     
     <entry>
+      <title>关于此网站</title>
+      <link href="/about/index.html"/>
+      <url>/about/index.html</url>
+      
+        <content type="html"><![CDATA[<h3 id="欢迎来到Mango的Blog！！！"><a href="#欢迎来到Mango的Blog！！！" class="headerlink" title="欢迎来到Mango的Blog！！！"></a>欢迎来到Mango的Blog！！！</h3><p>在这里，我将会分享个人在学习、工作以及爱好等方面的文章，希望能和大家交流互助~</p>]]></content>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>标签</title>
       <link href="/tags/index.html"/>
       <url>/tags/index.html</url>
@@ -593,22 +622,22 @@
     
     
     <entry>
-      <title>友情链接</title>
-      <link href="/link/index.html"/>
-      <url>/link/index.html</url>
+      <title></title>
+      <link href="/js/holiday-popup.js"/>
+      <url>/js/holiday-popup.js</url>
       
-        <content type="html"><![CDATA[<h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3>]]></content>
+        <content type="html"><![CDATA[(function () {    const initHolidayPopup = async () => {        const now = new Date();        const year = now.getFullYear();        const month = now.getMonth() + 1;        const day = now.getDate();                const todayStr = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;        const todayFullStr = `${year}-${todayStr}`;        const displayDate = `今天是 ${year}年${month}月${day}日`;        const storageKey = `holiday_popup_seen_${todayFullStr}`;        if (localStorage.getItem(storageKey)) return;        try {            const response = await fetch('/holidays.json');            if (!response.ok) return;            const holidaysData = await response.json();            const todaysHolidays = holidaysData[todayStr];            if (!todaysHolidays || todaysHolidays.length === 0) return;            renderPopup(todaysHolidays, displayDate, storageKey);        } catch (error) {            console.error('节假日数据加载失败:', error);        }    };    const getEmoji = (name) => {        const emojiMap = {            '春节': '🏮', '元旦': '🎉', '清明节': '🌿', '劳动节': '🛠️',            '端午节': '🐉', '中秋节': '🥮', '国庆节': '🇨🇳',            '站长生日': '🎂', '博客生日': '💻',            '七夕节': '💖', '感恩节': '🦃', '妇女节': '🌹',            '青年节': '🔥', '儿童节': '🎈', '建党节': '🚩',            '建军节': '🎖️', '教师节': '💐',            '立春': '🌱', '雨水': '💧', '惊蛰': '⚡', '春分': '🌸',            '谷雨': '🌧️', '立夏': '🍉', '小满': '🌾', '芒种': '🌻',            '夏至': '☀️', '小暑': '🍧', '大暑': '🔥', '立秋': '🍂',            '处暑': '🍁', '白露': '🍵', '秋分': '🌾', '寒露': '🍁',            '霜降': '❄️', '立冬': '⛄', '小雪': '🌨️', '大雪': '❄️',            '冬至': '🥟', '小寒': '🧣', '大寒': '🧤'        };        return emojiMap[name] || '✨';    };    const renderPopup = (holidays, displayDate, storageKey) => {        if (document.getElementById('holiday-popup-wrapper')) return;        const style = document.createElement('style');        style.id = 'holiday-popup-style';        style.textContent = `            #holiday-popup-wrapper {                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;                background: rgba(0, 0, 0, 0.5);                 z-index: 999999;                display: flex; justify-content: center; align-items: center;            }            #holiday-popup-box {                position: relative; width: 85%; max-width: 380px;                padding: 30px 25px; border-radius: 10px; text-align: center;                background: rgba(255, 255, 255, 0.85);                 backdrop-filter: blur(2px);                -webkit-backdrop-filter: blur(2px);                border: 1px solid rgba(255, 255, 255, 0.85);                box-shadow: 0 8px 16px -4px rgba(138, 138, 138, 0.15);                display: flex; flex-direction: column; align-items: center;                transition: background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;            }            html[data-theme="dark"] #holiday-popup-box {                background: rgba(30, 30, 30, 0.6);                border: 1px solid rgba(255, 255, 255, 0.08);                box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);            }            #holiday-popup-date {                 font-size: 14px; margin-bottom: 22px; font-weight: 500;                color: var(--font-color); opacity: 0.85;             }            .holiday-item { margin-bottom: 22px; }            .holiday-item:last-of-type { margin-bottom: 10px; }            .holiday-title {                font-size: 20px; font-weight: bold; margin: 0 0 12px 0;                color: #49b1f5; display: flex; align-items: center; justify-content: center; gap: 8px;            }            .holiday-msg {                 font-size: 15px; line-height: 1.6; margin: 0;                 color: var(--font-color);            }            #holiday-popup-close-btn {                margin-top: 20px; padding: 8px 32px;                font-size: 14px; cursor: pointer; border-radius: 5px;                border: 1px solid #49b1f5; background: transparent; color: #49b1f5;                transition: all 0.3s;            }            #holiday-popup-close-btn:hover { background: #49b1f5; color: #fff; }        `;        document.head.appendChild(style);        const itemsHtml = holidays.map(holiday => {            const randomMsg = holiday.msgs[Math.floor(Math.random() * holiday.msgs.length)];            const emoji = getEmoji(holiday.name);            return `                <div class="holiday-item">                    <h3 class="holiday-title"><span>${emoji}</span> ${holiday.name}</h3>                    <p class="holiday-msg">${randomMsg}</p>                </div>            `;        }).join('');        const isBirthday = holidays.some(holiday =>             holiday.name === '站长生日' || holiday.name === '博客生日'        );        const closeBtnText = isBirthday ? '生日快乐！' : '关闭';        const wrapper = document.createElement('div');        wrapper.id = 'holiday-popup-wrapper';        wrapper.innerHTML = `            <div id="holiday-popup-box">                <div id="holiday-popup-date">${displayDate}</div>                ${itemsHtml}                <button id="holiday-popup-close-btn">${closeBtnText}</button>            </div>        `;        document.body.appendChild(wrapper);        document.getElementById('holiday-popup-close-btn').addEventListener('click', () => {            wrapper.remove();            style.remove();            localStorage.setItem(storageKey, 'true');        });    };    if (document.readyState === 'loading') {        document.addEventListener('DOMContentLoaded', initHolidayPopup);    } else {        initHolidayPopup();    }    document.addEventListener('pjax:complete', initHolidayPopup);})();]]></content>
       
     </entry>
     
     
     
     <entry>
-      <title></title>
-      <link href="/js/holiday-popup.js"/>
-      <url>/js/holiday-popup.js</url>
+      <title>友情链接</title>
+      <link href="/link/index.html"/>
+      <url>/link/index.html</url>
       
-        <content type="html"><![CDATA[(function () {    const initHolidayPopup = async () => {        const now = new Date();        const year = now.getFullYear();        const month = now.getMonth() + 1;        const day = now.getDate();                const todayStr = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;        const todayFullStr = `${year}-${todayStr}`;        const displayDate = `今天是 ${year}年${month}月${day}日`;        const storageKey = `holiday_popup_seen_${todayFullStr}`;        if (localStorage.getItem(storageKey)) return;        try {            const response = await fetch('/holidays.json');            if (!response.ok) return;            const holidaysData = await response.json();            const todaysHolidays = holidaysData[todayStr];            if (!todaysHolidays || todaysHolidays.length === 0) return;            renderPopup(todaysHolidays, displayDate, storageKey);        } catch (error) {            console.error('节假日数据加载失败:', error);        }    };    const getEmoji = (name) => {        const emojiMap = {            '春节': '🏮', '元旦': '🎉', '清明节': '🌿', '劳动节': '🛠️',            '端午节': '🐉', '中秋节': '🥮', '国庆节': '🇨🇳',            '站长生日': '🎂', '博客生日': '💻',            '七夕节': '💖', '感恩节': '🦃', '妇女节': '🌹',            '青年节': '🔥', '儿童节': '🎈', '建党节': '🚩',            '建军节': '🎖️', '教师节': '💐',            '立春': '🌱', '雨水': '💧', '惊蛰': '⚡', '春分': '🌸',            '谷雨': '🌧️', '立夏': '🍉', '小满': '🌾', '芒种': '🌻',            '夏至': '☀️', '小暑': '🍧', '大暑': '🔥', '立秋': '🍂',            '处暑': '🍁', '白露': '🍵', '秋分': '🌾', '寒露': '🍁',            '霜降': '❄️', '立冬': '⛄', '小雪': '🌨️', '大雪': '❄️',            '冬至': '🥟', '小寒': '🧣', '大寒': '🧤'        };        return emojiMap[name] || '✨';    };    const renderPopup = (holidays, displayDate, storageKey) => {        if (document.getElementById('holiday-popup-wrapper')) return;        const style = document.createElement('style');        style.id = 'holiday-popup-style';        style.textContent = `            #holiday-popup-wrapper {                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;                background: rgba(0, 0, 0, 0.5);                 z-index: 999999;                display: flex; justify-content: center; align-items: center;            }            #holiday-popup-box {                position: relative; width: 85%; max-width: 380px;                padding: 30px 25px; border-radius: 10px; text-align: center;                background: rgba(255, 255, 255, 0.85);                 backdrop-filter: blur(2px);                -webkit-backdrop-filter: blur(2px);                border: 1px solid rgba(255, 255, 255, 0.85);                box-shadow: 0 8px 16px -4px rgba(138, 138, 138, 0.15);                display: flex; flex-direction: column; align-items: center;                transition: background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;            }            html[data-theme="dark"] #holiday-popup-box {                background: rgba(30, 30, 30, 0.6);                border: 1px solid rgba(255, 255, 255, 0.08);                box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);            }            #holiday-popup-date {                 font-size: 14px; margin-bottom: 22px; font-weight: 500;                color: var(--font-color); opacity: 0.85;             }            .holiday-item { margin-bottom: 22px; }            .holiday-item:last-of-type { margin-bottom: 10px; }            .holiday-title {                font-size: 20px; font-weight: bold; margin: 0 0 12px 0;                color: #49b1f5; display: flex; align-items: center; justify-content: center; gap: 8px;            }            .holiday-msg {                 font-size: 15px; line-height: 1.6; margin: 0;                 color: var(--font-color);            }            #holiday-popup-close-btn {                margin-top: 20px; padding: 8px 32px;                font-size: 14px; cursor: pointer; border-radius: 5px;                border: 1px solid #49b1f5; background: transparent; color: #49b1f5;                transition: all 0.3s;            }            #holiday-popup-close-btn:hover { background: #49b1f5; color: #fff; }        `;        document.head.appendChild(style);        const itemsHtml = holidays.map(holiday => {            const randomMsg = holiday.msgs[Math.floor(Math.random() * holiday.msgs.length)];            const emoji = getEmoji(holiday.name);            return `                <div class="holiday-item">                    <h3 class="holiday-title"><span>${emoji}</span> ${holiday.name}</h3>                    <p class="holiday-msg">${randomMsg}</p>                </div>            `;        }).join('');        const isBirthday = holidays.some(holiday =>             holiday.name === '站长生日' || holiday.name === '博客生日'        );        const closeBtnText = isBirthday ? '生日快乐！' : '关闭';        const wrapper = document.createElement('div');        wrapper.id = 'holiday-popup-wrapper';        wrapper.innerHTML = `            <div id="holiday-popup-box">                <div id="holiday-popup-date">${displayDate}</div>                ${itemsHtml}                <button id="holiday-popup-close-btn">${closeBtnText}</button>            </div>        `;        document.body.appendChild(wrapper);        document.getElementById('holiday-popup-close-btn').addEventListener('click', () => {            wrapper.remove();            style.remove();            localStorage.setItem(storageKey, 'true');        });    };    if (document.readyState === 'loading') {        document.addEventListener('DOMContentLoaded', initHolidayPopup);    } else {        initHolidayPopup();    }    document.addEventListener('pjax:complete', initHolidayPopup);})();]]></content>
+        <content type="html"><![CDATA[<h3 id="😎以上所有内容仅限学习交流使用！！"><a href="#😎以上所有内容仅限学习交流使用！！" class="headerlink" title="😎以上所有内容仅限学习交流使用！！"></a>😎以上所有内容仅限学习交流使用！！</h3>]]></content>
       
     </entry>
     
