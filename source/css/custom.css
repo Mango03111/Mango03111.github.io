@@ -263,9 +263,14 @@ html[data-theme="dark"] #page-header #post {
 }
 
 #page .tag-cloud-list a::before {
+    position: static;
+    width: auto;
+    height: auto;
+    background: none;
     content: '#';
-    color: #8B00BB;
+    color: #6e009388;
     font-weight: 700;
+    z-index: auto;
     transition: color 0.3s ease;
 }
 
