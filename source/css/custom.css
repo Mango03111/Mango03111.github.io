@@ -164,12 +164,14 @@ html[data-theme="dark"] #page-header #post {
 .card-back-content {
     padding: 5px;
     margin: 0;
+    overflow: hidden;
 }
 
 .card-back-content li {
     list-style: none;
     margin: 2px 5px;
     margin: 8px 0;
+    overflow: hidden;
 }
 
 .card-back-content a {
@@ -177,6 +179,12 @@ html[data-theme="dark"] #page-header #post {
     border-bottom: 2px solid var(--ichika-font-white);
     transition: .3s;
     padding: 5px 3px 3px 3px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-all;
+    line-height: 1.4;
 }
 
 .card-back-content a:hover {
