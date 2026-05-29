@@ -1,0 +1,1171 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>HCCL_stream_siganl_memory原理及使用方法 | SuperBigMango</title><meta name="author" content="Mango"><meta name="copyright" content="Mango"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="核心流程梳理主要流程函数 RunAsync：总调度，分三步 RunPreCopy：准备数据，部分rank与邻居先做一次规约或拷贝 RunAllReduceHDOptim：主规约过程，分多步，每步与不同邻居通信 RunFinalStep：处理非2的幂次时的收尾    关键数据结构 userMemIn：用户输入数据 **outputMem_**：算法内部buffer，存放中间结果 userMemOut">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HCCL_stream_siganl_memory原理及使用方法">
+<meta property="og:url" content="https://superbigmango.top/posts/7b15d684.html">
+<meta property="og:site_name" content="SuperBigMango">
+<meta property="og:description" content="核心流程梳理主要流程函数 RunAsync：总调度，分三步 RunPreCopy：准备数据，部分rank与邻居先做一次规约或拷贝 RunAllReduceHDOptim：主规约过程，分多步，每步与不同邻居通信 RunFinalStep：处理非2的幂次时的收尾    关键数据结构 userMemIn：用户输入数据 **outputMem_**：算法内部buffer，存放中间结果 userMemOut">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png">
+<meta property="article:published_time" content="2026-05-29T06:04:18.000Z">
+<meta property="article:modified_time" content="2026-05-29T06:22:23.733Z">
+<meta property="article:author" content="Mango">
+<meta property="article:tag" content="Algorithm">
+<meta property="article:tag" content="Code">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="Research">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "HCCL_stream_siganl_memory原理及使用方法",
+  "url": "https://superbigmango.top/posts/7b15d684.html",
+  "image": "https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png",
+  "datePublished": "2026-05-29T06:04:18.000Z",
+  "dateModified": "2026-05-29T06:22:23.733Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Mango",
+      "url": "https://github.com/Mango03111"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://superbigmango.top/posts/7b15d684.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)')
+          const mediaQueryLight = window.matchMedia('(prefers-color-scheme: light)')
+
+          if (theme === undefined) {
+            if (mediaQueryLight.matches) activateLightMode()
+            else if (mediaQueryDark.matches) activateDarkMode()
+            else {
+              const hour = new Date().getHours()
+              const isNight = hour <= 6 || hour >= 18
+              isNight ? activateDarkMode() : activateLightMode()
+            }
+            mediaQueryDark.addEventListener('change', () => {
+              if (saveToLocal.get('theme') === undefined) {
+                e.matches ? activateDarkMode() : activateLightMode()
+              }
+            })
+          } else {
+            theme === 'light' ? activateLightMode() : activateDarkMode()
+          }
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":800,"highlightFullpage":true,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: true
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'HCCL_stream_siganl_memory原理及使用方法',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end start --><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/animate.min.css" media="print" onload="this.media='screen'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/background_01.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/67-meme-67.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">26</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background: transparent;"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">SuperBigMango</span></a><a class="nav-page-title" href="/"><span class="site-name">HCCL_stream_siganl_memory原理及使用方法</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">HCCL_stream_siganl_memory原理及使用方法</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-05-29T06:04:18.000Z" title="发表于 2026-05-29 14:04:18">2026-05-29</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-05-29T06:22:23.733Z" title="更新于 2026-05-29 14:22:23">2026-05-29</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">10k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>38分钟</span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="核心流程梳理"><a href="#核心流程梳理" class="headerlink" title="核心流程梳理"></a>核心流程梳理</h1><h3 id="主要流程函数"><a href="#主要流程函数" class="headerlink" title="主要流程函数"></a>主要流程函数</h3><ul>
+<li><strong>RunAsync</strong>：总调度，分三步<ol>
+<li><code>RunPreCopy</code>：准备数据，部分rank与邻居先做一次规约或拷贝</li>
+<li><code>RunAllReduceHDOptim</code>：主规约过程，分多步，每步与不同邻居通信</li>
+<li><code>RunFinalStep</code>：处理非2的幂次时的收尾</li>
+</ol>
+</li>
+</ul>
+<h3 id="关键数据结构"><a href="#关键数据结构" class="headerlink" title="关键数据结构"></a>关键数据结构</h3><ul>
+<li><strong>userMemIn</strong>：用户输入数据</li>
+<li>**outputMem_**：算法内部buffer，存放中间结果</li>
+<li><strong>userMemOut</strong>：最终输出</li>
+<li><strong>links</strong>：与其他rank的通信链路</li>
+<li>**meshStreams_**：多stream支持</li>
+</ul>
+<h3 id="以4个NPU为例（rankSize-4-base-2-nSteps-2）"><a href="#以4个NPU为例（rankSize-4-base-2-nSteps-2）" class="headerlink" title="以4个NPU为例（rankSize&#x3D;4, base&#x3D;2, nSteps&#x3D;2）"></a>以4个NPU为例（rankSize&#x3D;4, base&#x3D;2, nSteps&#x3D;2）</h3><ul>
+<li>每个NPU初始有自己的输入数据</li>
+<li>目标：所有NPU最终都拿到全局规约（如sum）结果</li>
+</ul>
+<h1 id="4个NPU的AllReduce通信过程"><a href="#4个NPU的AllReduce通信过程" class="headerlink" title="4个NPU的AllReduce通信过程"></a>4个NPU的AllReduce通信过程</h1><h3 id="步骤分解"><a href="#步骤分解" class="headerlink" title="步骤分解"></a>步骤分解</h3><h4 id="步骤0：数据准备（RunPreCopy）"><a href="#步骤0：数据准备（RunPreCopy）" class="headerlink" title="步骤0：数据准备（RunPreCopy）"></a>步骤0：数据准备（RunPreCopy）</h4><ul>
+<li>每个NPU把自己的输入数据拷贝到outputMem_</li>
+<li>某些NPU与邻居先做一次规约或数据交换</li>
+</ul>
+<h4 id="步骤1：第一次规约（step-1）"><a href="#步骤1：第一次规约（step-1）" class="headerlink" title="步骤1：第一次规约（step&#x3D;1）"></a>步骤1：第一次规约（step&#x3D;1）</h4><ul>
+<li>每个NPU与“距离为1”的邻居（rank异或1）交换数据并做规约</li>
+<li>结果写入outputMem_的下一个offset</li>
+</ul>
+<h4 id="步骤2：第二次规约（step-2）"><a href="#步骤2：第二次规约（step-2）" class="headerlink" title="步骤2：第二次规约（step&#x3D;2）"></a>步骤2：第二次规约（step&#x3D;2）</h4><ul>
+<li>每个NPU与“距离为2”的邻居（rank异或2）交换数据并做规约</li>
+<li>结果写入outputMem_的下一个offset</li>
+</ul>
+<h4 id="步骤3：结果输出（RunFinalStep）"><a href="#步骤3：结果输出（RunFinalStep）" class="headerlink" title="步骤3：结果输出（RunFinalStep）"></a>步骤3：结果输出（RunFinalStep）</h4><ul>
+<li>最终结果写入userMemOut</li>
+</ul>
+<h1 id="图文结合展示"><a href="#图文结合展示" class="headerlink" title="图文结合展示"></a>图文结合展示</h1><h3 id="NPU编号与初始数据"><a href="#NPU编号与初始数据" class="headerlink" title="NPU编号与初始数据"></a>NPU编号与初始数据</h3><table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>NPU</th>
+<th>初始数据（userMemIn）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>NPU0</td>
+<td>A</td>
+</tr>
+<tr>
+<td>1</td>
+<td>NPU1</td>
+<td>B</td>
+</tr>
+<tr>
+<td>2</td>
+<td>NPU2</td>
+<td>C</td>
+</tr>
+<tr>
+<td>3</td>
+<td>NPU3</td>
+<td>D</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="通信与数据流动时序图"><a href="#通信与数据流动时序图" class="headerlink" title="通信与数据流动时序图"></a>通信与数据流动时序图</h3><h4 id="步骤0：数据准备"><a href="#步骤0：数据准备" class="headerlink" title="步骤0：数据准备"></a>步骤0：数据准备</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant NPU0</span><br><span class="line">    participant NPU1</span><br><span class="line">    participant NPU2</span><br><span class="line">    participant NPU3</span><br><span class="line">    NPU0-&gt;&gt;NPU0: 拷贝A到outputMem_</span><br><span class="line">    NPU1-&gt;&gt;NPU1: 拷贝B到outputMem_</span><br><span class="line">    NPU2-&gt;&gt;NPU2: 拷贝C到outputMem_</span><br><span class="line">    NPU3-&gt;&gt;NPU3: 拷贝D到outputMem_</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="步骤1：第一次规约（step-1-邻居-rank-1）"><a href="#步骤1：第一次规约（step-1-邻居-rank-1）" class="headerlink" title="步骤1：第一次规约（step&#x3D;1, 邻居&#x3D;rank^1）"></a>步骤1：第一次规约（step&#x3D;1, 邻居&#x3D;rank^1）</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant NPU0</span><br><span class="line">    participant NPU1</span><br><span class="line">    participant NPU2</span><br><span class="line">    participant NPU3</span><br><span class="line">    NPU0-&gt;&gt;NPU1: 发送A</span><br><span class="line">    NPU1-&gt;&gt;NPU0: 发送B</span><br><span class="line">    NPU0-&gt;&gt;NPU0: 规约(A,B)→AB</span><br><span class="line">    NPU1-&gt;&gt;NPU1: 规约(B,A)→AB</span><br><span class="line">    NPU2-&gt;&gt;NPU3: 发送C</span><br><span class="line">    NPU3-&gt;&gt;NPU2: 发送D</span><br><span class="line">    NPU2-&gt;&gt;NPU2: 规约(C,D)→CD</span><br><span class="line">    NPU3-&gt;&gt;NPU3: 规约(D,C)→CD</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="步骤2：第二次规约（step-2-邻居-rank-2）"><a href="#步骤2：第二次规约（step-2-邻居-rank-2）" class="headerlink" title="步骤2：第二次规约（step&#x3D;2, 邻居&#x3D;rank^2）"></a>步骤2：第二次规约（step&#x3D;2, 邻居&#x3D;rank^2）</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant NPU0</span><br><span class="line">    participant NPU2</span><br><span class="line">    participant NPU1</span><br><span class="line">    participant NPU3</span><br><span class="line">    NPU0-&gt;&gt;NPU2: 发送AB</span><br><span class="line">    NPU2-&gt;&gt;NPU0: 发送CD</span><br><span class="line">    NPU0-&gt;&gt;NPU0: 规约(AB,CD)→ABCD</span><br><span class="line">    NPU2-&gt;&gt;NPU2: 规约(CD,AB)→ABCD</span><br><span class="line">    NPU1-&gt;&gt;NPU3: 发送AB</span><br><span class="line">    NPU3-&gt;&gt;NPU1: 发送CD</span><br><span class="line">    NPU1-&gt;&gt;NPU1: 规约(AB,CD)→ABCD</span><br><span class="line">    NPU3-&gt;&gt;NPU3: 规约(CD,AB)→ABCD</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="步骤3：结果输出"><a href="#步骤3：结果输出" class="headerlink" title="步骤3：结果输出"></a>步骤3：结果输出</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant NPU0</span><br><span class="line">    participant NPU1</span><br><span class="line">    participant NPU2</span><br><span class="line">    participant NPU3</span><br><span class="line">    NPU0-&gt;&gt;NPU0: 写ABCD到userMemOut</span><br><span class="line">    NPU1-&gt;&gt;NPU1: 写ABCD到userMemOut</span><br><span class="line">    NPU2-&gt;&gt;NPU2: 写ABCD到userMemOut</span><br><span class="line">    NPU3-&gt;&gt;NPU3: 写ABCD到userMemOut</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="总结性数据流图"><a href="#总结性数据流图" class="headerlink" title="总结性数据流图"></a>总结性数据流图</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">graph TD</span><br><span class="line">    A[&quot;NPU0:A&quot;] --&gt; AB1[&quot;规约1:AB&quot;]</span><br><span class="line">    B[&quot;NPU1:B&quot;] --&gt; AB1</span><br><span class="line">    C[&quot;NPU2:C&quot;] --&gt; CD1[&quot;规约1:CD&quot;]</span><br><span class="line">    D[&quot;NPU3:D&quot;] --&gt; CD1</span><br><span class="line">    AB1 --&gt; ABCD2[&quot;规约2:ABCD&quot;]</span><br><span class="line">    CD1 --&gt; ABCD2</span><br><span class="line">    ABCD2 --&gt; O0[&quot;NPU0:ABCD&quot;]</span><br><span class="line">    ABCD2 --&gt; O1[&quot;NPU1:ABCD&quot;]</span><br><span class="line">    ABCD2 --&gt; O2[&quot;NPU2:ABCD&quot;]</span><br><span class="line">    ABCD2 --&gt; O3[&quot;NPU3:ABCD&quot;]</span><br></pre></td></tr></table></figure>
+
+<h1 id="代码分析"><a href="#代码分析" class="headerlink" title="代码分析"></a>代码分析</h1><h2 id="数据准备（RunPreCopy）——逐段分析"><a href="#数据准备（RunPreCopy）——逐段分析" class="headerlink" title="数据准备（RunPreCopy）——逐段分析"></a>数据准备（RunPreCopy）——逐段分析</h2><h3 id="计算总数据量"><a href="#计算总数据量" class="headerlink" title="计算总数据量"></a>计算总数据量</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">u32 totalSize = SIZE_TABLE[dataType_] * count_;</span><br></pre></td></tr></table></figure>
+
+<p><strong>解释</strong>：  </p>
+<ul>
+<li>计算本次AllReduce每个rank需要处理的数据总字节数。</li>
+<li><code>SIZE_TABLE[dataType_]</code> 表示每个元素的字节数，<code>count_</code>是元素个数。</li>
+</ul>
+<blockquote>
+<p>cout_来源：</p>
+<ul>
+<li>测试程序会根据 -b&#x2F;-e 计算每次 AllReduce 操作要处理的数据总字节数，比如 512k &#x3D; 524288 字节。</li>
+<li>然后结合 -d fp32（数据类型，float32，每个元素4字节），计算元素个数：</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">count = 数据总字节数 / 单元素字节数</span><br><span class="line">      = <span class="number">524288</span> / <span class="number">4</span></span><br><span class="line">      = <span class="number">131072</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>这个 count 会被写入 HcomCollOpInfo 结构体的 count 字段，最终赋值给 AllReduce 算法对象的 count_。</li>
+</ul>
+</blockquote>
+<hr>
+<h3 id="构造本地内存视图"><a href="#构造本地内存视图" class="headerlink" title="构造本地内存视图"></a>构造本地内存视图</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">DeviceMem src = userMemIn.<span class="built_in">range</span>(<span class="number">0</span>, totalSize);</span><br><span class="line">DeviceMem dst = outputMem_.<span class="built_in">range</span>(<span class="number">0</span>, totalSize);</span><br><span class="line">DeviceMem nextDst = outputMem_.<span class="built_in">range</span>(totalSize, totalSize);</span><br></pre></td></tr></table></figure>
+
+<p><strong>解释</strong>：  </p>
+<ul>
+<li><p><code>src</code>：指向本rank输入数据的内存区域（userMemIn）。</p>
+</li>
+<li><p><code>dst</code>：指向本rank内部buffer的首段（outputMem_）。</p>
+</li>
+<li><p><code>nextDst</code>：指向内部buffer的下一个offset（为后续步骤做准备）。</p>
+</li>
+<li><p>这三行代码不会新分配内存，而是基于已有的内存（userMemIn、outputMem_）创建“视图”或“子区间”。</p>
+</li>
+<li><p>这些 DeviceMem 对象只是指向原有内存的某一段，方便后续操作。</p>
+</li>
+<li><p>userMemIn.range(0, totalSize)</p>
+</li>
+</ul>
+<p>→ 指向用户输入数据的首地址，长度为 totalSize 字节。</p>
+<ul>
+<li>outputMem_.range(0, totalSize)</li>
+</ul>
+<p>→ 指向算法内部 buffer（outputMem_）的首地址，长度为 totalSize 字节。</p>
+<ul>
+<li>outputMem_.range(totalSize, totalSize)</li>
+</ul>
+<p>→ 指向 outputMem_ 的下一个 offset（即从 outputMem_ 的 totalSize 字节处开始，长度为 totalSize 字节）。</p>
+<ul>
+<li><p>这样做的好处是：可以方便地对同一块大内存的不同“段”进行操作（如拷贝、规约），而不用频繁分配&#x2F;释放内存。</p>
+</li>
+<li><p>这些“视图”可以直接传递给底层的 memcpy、reduce 等操作函数。</p>
+</li>
+</ul>
+<hr>
+<h3 id="判断是否为2的幂次"><a href="#判断是否为2的幂次" class="headerlink" title="判断是否为2的幂次"></a>判断是否为2的幂次</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (stepPow == rankSize) &#123;</span><br><span class="line">    <span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, nextDst, src, stream_)); <span class="comment">//这行代码的作用是：在设备（NPU）内存之间，异步拷贝一段数据。具体来说，是把 src 指向的内存内容，拷贝到 nextDst 指向的内存区域。</span></span><br><span class="line">    <span class="keyword">return</span> HCCL_SUCCESS;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>解释</strong>：  </p>
+<ul>
+<li><p>如果rank数是2的幂（如4），直接把输入数据拷贝到outputMem_的nextDst位置。</p>
+</li>
+<li><p>这一步没有与其他rank的通信，仅本地拷贝。</p>
+</li>
+<li><p>stepPow 是 pow(base, nSteps)，其中 base&#x3D;2，nSteps&#x3D;log2(rankSize)。</p>
+</li>
+<li><p>所以 stepPow &#x3D;&#x3D; rankSize 只有在 rankSize 是2的整数次幂时成立（比如4、8、16等）。</p>
+</li>
+</ul>
+<hr>
+<h3 id="计算邻居rank"><a href="#计算邻居rank" class="headerlink" title="计算邻居rank"></a>计算邻居rank</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">u32 neighCur = rank ^ (<span class="number">1</span> &lt;&lt; nSteps);</span><br></pre></td></tr></table></figure>
+
+<p><strong>解释</strong>：  </p>
+<ul>
+<li>计算本rank在本步需要通信的邻居rank编号。</li>
+<li>通过异或操作，找到“距离为2^nSteps”的邻居。</li>
+</ul>
+<hr>
+<h3 id="判断邻居是否有效"><a href="#判断邻居是否有效" class="headerlink" title="判断邻居是否有效"></a>判断邻居是否有效</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (neighCur &lt; rankSize) &#123;</span><br><span class="line">    <span class="comment">// ...后续分支</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>解释</strong>：  </p>
+<ul>
+<li>如果邻居编号在有效范围内，说明本rank需要与该邻居通信。</li>
+<li>否则，后续只做本地拷贝。</li>
+</ul>
+<hr>
+<h3 id="分支1：大编号rank先做规约"><a href="#分支1：大编号rank先做规约" class="headerlink" title="分支1：大编号rank先做规约"></a>分支1：大编号rank先做规约</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (rank &gt;= <span class="built_in">pow</span>(base, nSteps)) &#123;</span><br><span class="line">    <span class="built_in">CHK_PTR_NULL</span>(links[neighCur]);</span><br><span class="line">    <span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">RxAck</span>(stream_));</span><br><span class="line">    <span class="type">void</span> *remMemPtr = <span class="literal">nullptr</span>;</span><br><span class="line">    <span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">GetRemoteMem</span>(UserMemType::OUTPUT_MEM, &amp;remMemPtr));</span><br><span class="line">    dst = DeviceMem::<span class="built_in">create</span>(<span class="built_in">static_cast</span>&lt;u8 *&gt;(remMemPtr), totalSize);</span><br><span class="line">    <span class="built_in">CHK_RET</span>(<span class="built_in">HcclReduceAsync</span>(dispatcher_,</span><br><span class="line">        <span class="built_in">static_cast</span>&lt;<span class="type">void</span> *&gt;(src.<span class="built_in">ptr</span>()),</span><br><span class="line">        count_,</span><br><span class="line">        dataType_,</span><br><span class="line">        reductionOp_,</span><br><span class="line">        stream_,</span><br><span class="line">        <span class="built_in">static_cast</span>&lt;<span class="type">void</span> *&gt;(dst.<span class="built_in">ptr</span>()),</span><br><span class="line">        links[neighCur]-&gt;<span class="built_in">GetRemoteRank</span>(),</span><br><span class="line">        links[neighCur]-&gt;<span class="built_in">GetLinkType</span>(),</span><br><span class="line">        INLINE_REDUCE_BIT));</span><br><span class="line">    <span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">TxDataSignal</span>(stream_));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>解释</strong>：  </p>
+<ul>
+<li>如果本rank编号较大（如rank&#x3D;2,3），先等待邻居的ack（RxAck）。</li>
+<li>获取邻居的outputMem_地址，准备把规约结果写到邻居buffer。</li>
+<li>执行规约（HcclReduceAsync）：本地数据和邻居数据做规约，结果写到邻居buffer。</li>
+<li>通知邻居数据已写好（TxDataSignal）。</li>
+</ul>
+<hr>
+<h3 id="分支2：小编号rank只做拷贝和同步"><a href="#分支2：小编号rank只做拷贝和同步" class="headerlink" title="分支2：小编号rank只做拷贝和同步"></a>分支2：小编号rank只做拷贝和同步</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, dst, src, stream_));</span><br><span class="line">    <span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">TxAck</span>(stream_));</span><br><span class="line">    <span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">RxDataSignal</span>(stream_));</span><br><span class="line">    <span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, nextDst, dst, stream_));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>解释</strong>：  </p>
+<ul>
+<li>如果本rank编号较小（如rank&#x3D;0,1），只需把输入数据拷贝到outputMem_。</li>
+<li>通知邻居可以开始（TxAck），等待邻居数据写好（RxDataSignal）。</li>
+<li>再把outputMem_拷贝到nextDst，为后续步骤做准备。</li>
+</ul>
+<blockquote>
+<hr>
+</blockquote>
+<p> 结合4个NPU的例子（rank&#x3D;0,1,2,3）</p>
+<blockquote>
+<p>假设此时在<strong>RunPreCopy</strong>阶段，且不是2的幂次的特殊分支（即走到了这段代码）。</p>
+<ul>
+<li><code>src</code>：userMemIn.range(0, totalSize)（本NPU的输入数据）</li>
+<li><code>dst</code>：outputMem_.range(0, totalSize)（本NPU内部buffer的首段）</li>
+<li><code>nextDst</code>：outputMem_.range(totalSize, totalSize)（本NPU内部buffer的第二段）</li>
+<li><code>neighCur</code>：通过 <code>rank ^ (1 &lt;&lt; nSteps)</code> 计算得到的邻居rank</li>
+</ul>
+<hr>
+</blockquote>
+<p> 每一步的具体含义</p>
+<blockquote>
+<h3 id="第一步：本地拷贝"><a href="#第一步：本地拷贝" class="headerlink" title="第一步：本地拷贝"></a>第一步：本地拷贝</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, dst, src, stream_));</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>作用</strong>：把本NPU的输入数据拷贝到 outputMem_ 的首段。</li>
+<li><strong>举例</strong>：NPU0 把自己的数据A拷贝到 outputMem_ 的首段。</li>
+</ul>
+<hr>
+<h3 id="第二步：通知邻居"><a href="#第二步：通知邻居" class="headerlink" title="第二步：通知邻居"></a>第二步：通知邻居</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">TxAck</span>(stream_));</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>作用</strong>：通过通信链路，通知邻居NPU“我准备好了，可以开始了”。</li>
+<li><strong>举例</strong>：NPU0 通知它的邻居NPU2（假设 neighCur&#x3D;2）。</li>
+</ul>
+<hr>
+<h3 id="第三步：等待邻居数据写好"><a href="#第三步：等待邻居数据写好" class="headerlink" title="第三步：等待邻居数据写好"></a>第三步：等待邻居数据写好</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">RxDataSignal</span>(stream_));</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>作用</strong>：等待邻居NPU完成它的数据写入（比如规约或拷贝），保证数据同步。</li>
+<li><strong>举例</strong>：NPU0 等待NPU2的数据写好。</li>
+</ul>
+<hr>
+<h3 id="第四步：再次本地拷贝"><a href="#第四步：再次本地拷贝" class="headerlink" title="第四步：再次本地拷贝"></a>第四步：再次本地拷贝</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, nextDst, dst, stream_));</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>作用</strong>：把 outputMem_ 的首段数据再拷贝到 outputMem_ 的第二段（nextDst）。</li>
+<li><strong>举例</strong>：NPU0 把 outputMem_ 的首段（A）拷贝到第二段，为后续规约做准备。</li>
+</ul>
+<hr>
+</blockquote>
+<p> 这一步在4NPU例子中的作用</p>
+<blockquote>
+<ul>
+<li><strong>本地数据准备</strong>：每个NPU先把自己的输入数据拷贝到 outputMem_ 的首段。</li>
+<li><strong>同步与通信</strong>：通过 TxAck 和 RxDataSignal，和邻居NPU进行同步，确保数据写入顺序正确。</li>
+<li><strong>多段布局</strong>：再把首段数据拷贝到第二段，为后续 AllReduce 步骤（比如分步规约、流水线等）做内存布局准备。</li>
+</ul>
+</blockquote>
+<hr>
+<h3 id="分支3：没有有效邻居，只做本地拷贝"><a href="#分支3：没有有效邻居，只做本地拷贝" class="headerlink" title="分支3：没有有效邻居，只做本地拷贝"></a>分支3：没有有效邻居，只做本地拷贝</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, dst, src, stream_));</span><br><span class="line">    <span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, nextDst, dst, stream_));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>解释</strong>：  </p>
+<ul>
+<li>如果没有有效邻居（如rank数不是2的幂），只做本地拷贝。</li>
+</ul>
+<p>好的，我们继续进入<strong>第二步：第一次规约</strong>，结合4个NPU的例子，详细分析对应的代码和数据流动。</p>
+<h2 id="第一次规约（RunAllReduceHDOptim，step-1）"><a href="#第一次规约（RunAllReduceHDOptim，step-1）" class="headerlink" title="第一次规约（RunAllReduceHDOptim，step&#x3D;1）"></a>第一次规约（RunAllReduceHDOptim，step&#x3D;1）</h2><h3 id="相关代码位置"><a href="#相关代码位置" class="headerlink" title="相关代码位置"></a>相关代码位置</h3><p>在 <code>RunAsync</code> 里，经过 <code>RunPreCopy</code> 后会进入：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (rank &lt; stepPow) &#123;</span><br><span class="line">    ret = <span class="built_in">RunAllReduceHDOptim</span>(rank, rankSize, links);</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="RunAllReduceHDOptim-关键流程"><a href="#RunAllReduceHDOptim-关键流程" class="headerlink" title="RunAllReduceHDOptim 关键流程"></a>RunAllReduceHDOptim 关键流程</h3><p>我们关注第一次循环（step&#x3D;1）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">u32 neighCur = rank ^ (<span class="number">1</span> &lt;&lt; <span class="number">0</span>); <span class="comment">// 第一次规约，邻居是rank异或1</span></span><br><span class="line"><span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">TxAck</span>(stream_));</span><br><span class="line"><span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">RxAck</span>(stream_));</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (u32 step = <span class="number">1</span>; step &lt;= nSteps; step++) &#123;</span><br><span class="line">    <span class="comment">// ... 省略部分代码 ...</span></span><br><span class="line">    <span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">GetRemoteMem</span>(UserMemType::OUTPUT_MEM, &amp;remMemPtr)); <span class="comment">//通过通信链路 links[neighCur]，获取邻居NPU的 outputMem_ 的地址，并把这个地址写到 remMemPtr 变量里。UserMemType::OUTPUT_MEM 指定要获取的是对方的 outputMem_ 区域。</span></span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">if ((step == 1) &amp;&amp; (stepPow == rankSize)) &#123;</span><br><span class="line">    src = userMemIn.range(0, totalSize);</span><br><span class="line">    dst = DeviceMem::create(static_cast&lt;u8 *&gt;(remMemPtr) + totalSize, totalSize);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>这行代码的作用是<strong>构造一个指向远端NPU内存的“视图”</strong>，用于后续的数据规约操作。</p>
+<ol>
+<li>参数含义</li>
+</ol>
+<ul>
+<li><code>remMemPtr</code>：通过上一句 <code>GetRemoteMem</code> 获取到的<strong>邻居NPU的 outputMem_ 的基地址</strong>。</li>
+<li><code>(step - 1) * totalSize</code>：表示<strong>在远端 outputMem_ 上的偏移量</strong>，每个 step 对应 outputMem_ 的不同“段”。</li>
+<li><code>totalSize</code>：每一段的字节数。</li>
+</ul>
+<ol start="2">
+<li>这行代码做了什么？</li>
+</ol>
+<ul>
+<li><code>static_cast&lt;u8 *&gt;(remMemPtr) + (step - 1) * totalSize</code><br>→ 把远端 outputMem_ 的基地址，<strong>加上 (step-1) 段的偏移</strong>，指向 outputMem_ 的第 step 段。</li>
+<li><code>DeviceMem::create(..., totalSize)</code><br>→ 创建一个 DeviceMem 对象，<strong>代表远端 outputMem_ 的第 step 段，长度为 totalSize</strong>。</li>
+</ul>
+<ol start="3">
+<li>作用</li>
+</ol>
+<ul>
+<li>这样做的目的是：<strong>后续的规约操作（如 HcclReduceAsync）可以直接用 src 作为输入，读取邻居NPU outputMem_ 的第 step 段的数据</strong>。</li>
+<li>这保证了每一步 AllReduce 规约时，能正确地访问到远端NPU的中间结果。</li>
+</ul>
+<ol start="4">
+<li>举例说明（以4NPU为例，step&#x3D;1）</li>
+</ol>
+<ul>
+<li>假设 remMemPtr 是 NPU1 的 outputMem_ 的基地址，totalSize&#x3D;512KB。</li>
+<li>step&#x3D;1 时，偏移为 0，src 指向 NPU1 outputMem_ 的首段。</li>
+<li>step&#x3D;2 时，偏移为 1*512KB，src 指向 NPU1 outputMem_ 的第二段。</li>
+</ul>
+<hr>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">    <span class="built_in">CHK_RET</span>(<span class="built_in">HcclReduceAsync</span>(dispatcher_,</span><br><span class="line">        <span class="built_in">static_cast</span>&lt;<span class="type">void</span> *&gt;(src.<span class="built_in">ptr</span>()),</span><br><span class="line">        count_,</span><br><span class="line">        dataType_,</span><br><span class="line">        reductionOp_,</span><br><span class="line">        stream_,</span><br><span class="line">        <span class="built_in">static_cast</span>&lt;<span class="type">void</span> *&gt;(dst.<span class="built_in">ptr</span>()),</span><br><span class="line">        links[neighCur]-&gt;<span class="built_in">GetRemoteRank</span>(),</span><br><span class="line">        links[neighCur]-&gt;<span class="built_in">GetLinkType</span>(),</span><br><span class="line">        INLINE_REDUCE_BIT));</span><br><span class="line">    <span class="comment">// ... 省略后续代码 ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>参数含义</li>
+</ol>
+<ul>
+<li><code>dispatcher_</code>：调度器对象，负责调度本次规约操作。</li>
+<li><code>src.ptr()</code>：<strong>输入数据的指针</strong>，这里是“远端NPU outputMem_ 某段”的地址（见上一步）。</li>
+<li><code>count_</code>：规约元素个数（比如 131072）。</li>
+<li><code>dataType_</code>：数据类型（如 fp32）。</li>
+<li><code>reductionOp_</code>：规约操作类型（如 sum、max）。用户在命令行指定 -o sum、-o max 等参数。</li>
+<li><code>stream_</code>：在哪个 stream 上异步执行。</li>
+<li><code>dst.ptr()</code>：<strong>输出数据的指针</strong>，本地 outputMem_ 某段的地址。</li>
+</ul>
+<p> dst 的来源</p>
+<blockquote>
+<p>在 <code>RunAllReduceHDOptim</code> 的 for 循环中，<code>dst</code> 的赋值如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> ((step != nSteps) || (stepPow != rankSize)) &#123;</span><br><span class="line"> dst = outputMem_.<span class="built_in">range</span>(step * totalSize, totalSize);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line"> dst = userMemOut.<span class="built_in">range</span>(<span class="number">0</span>, totalSize);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>outputMem_</code>：算法内部 buffer，分多段存放中间结果。</li>
+<li><code>userMemOut</code>：最终输出 buffer。</li>
+</ul>
+<hr>
+</blockquote>
+<p> 具体指向</p>
+<blockquote>
+<ul>
+<li><strong>大多数情况下</strong>（不是最后一步），<code>dst</code> 指向 <code>outputMem_</code> 的第 step 段（即从 <code>step * totalSize</code> 开始，长度为 <code>totalSize</code>）。</li>
+<li><strong>最后一步</strong>（step&#x3D;&#x3D;nSteps 且 stepPow&#x3D;&#x3D;rankSize），<code>dst</code> 指向 <code>userMemOut</code> 的首段（最终输出）。</li>
+</ul>
+<hr>
+</blockquote>
+<p> 4NPU例子下的具体含义</p>
+<blockquote>
+<p>假设 <code>totalSize=512KB</code>，<code>nSteps=2</code>，则：</p>
+<ul>
+<li>第一次规约（step&#x3D;1）：<code>dst</code> 指向 <code>outputMem_</code> 的第1段（偏移512KB，长度512KB）。</li>
+<li>第二次规约（step&#x3D;2）：如果是最后一步且stepPow&#x3D;&#x3D;rankSize，<code>dst</code> 指向 <code>userMemOut</code> 的首段，否则指向 <code>outputMem_</code> 的第2段（偏移1024KB，长度512KB）。</li>
+</ul>
+</blockquote>
+<ul>
+<li><code>links[neighCur]-&gt;GetRemoteRank()</code>：远端NPU的rank号。</li>
+<li><code>links[neighCur]-&gt;GetLinkType()</code>：通信链路类型（如RDMA、PCIe等）。</li>
+<li><code>INLINE_REDUCE_BIT</code>：是否启用inline reduce等特殊优化。</li>
+</ul>
+<h3 id="第一次规约整体流程"><a href="#第一次规约整体流程" class="headerlink" title="第一次规约整体流程"></a>第一次规约整体流程</h3><ol>
+<li>关键代码片段</li>
+</ol>
+<p>在 <code>RunAllReduceHDOptim</code> 的第一次循环（step&#x3D;1）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">CHK_RET</span>(<span class="built_in">HcclReduceAsync</span>(dispatcher_,</span><br><span class="line">    <span class="built_in">static_cast</span>&lt;<span class="type">void</span> *&gt;(src.<span class="built_in">ptr</span>()),</span><br><span class="line">    count_,</span><br><span class="line">    dataType_,</span><br><span class="line">    reductionOp_,</span><br><span class="line">    stream_,</span><br><span class="line">    <span class="built_in">static_cast</span>&lt;<span class="type">void</span> *&gt;(dst.<span class="built_in">ptr</span>()),</span><br><span class="line">    links[neighCur]-&gt;<span class="built_in">GetRemoteRank</span>(),</span><br><span class="line">    links[neighCur]-&gt;<span class="built_in">GetLinkType</span>(),</span><br><span class="line">    INLINE_REDUCE_BIT));</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>参数对应关系</li>
+</ol>
+<ul>
+<li><code>src</code>：指向<strong>邻居NPU outputMem_首段</strong>（比如NPU1的B）</li>
+<li><code>dst</code>：指向<strong>本地NPU outputMem_第二段</strong>（比如NPU0的outputMem_第二段，初始为A）</li>
+<li><code>count_</code>、<code>dataType_</code>、<code>reductionOp_</code>：描述规约的数据量、类型和操作（如sum）</li>
+</ul>
+<ol start="3">
+<li>代码执行逻辑</li>
+</ol>
+<ul>
+<li>这行代码的本质是：<ul>
+<li><strong>读取邻居NPU outputMem_首段的数据（B）</strong></li>
+<li><strong>把本地 outputMem_第二段的数据（A）和B做规约（A+B）</strong></li>
+<li><strong>规约结果写回本地 outputMem_第二段</strong></li>
+</ul>
+</li>
+</ul>
+<ol start="4">
+<li>伪代码&#x2F;流程</li>
+</ol>
+<p>以NPU0为例：</p>
+<ol>
+<li><p><code>src</code> ← NPU1 outputMem_首段（B）</p>
+</li>
+<li><p><code>dst</code> ← NPU0 outputMem_第二段（A）</p>
+</li>
+<li><p><code>HcclReduceAsync(..., src, ..., dst, ...)</code></p>
+<ul>
+<li>实际执行：<code>dst = dst + src</code>（A &#x3D; A + B），结果写回NPU0 outputMem_第二段</li>
+</ul>
+</li>
+<li><p>代码与数据流图结合</p>
+</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">graph TD</span><br><span class="line">    B[&quot;NPU1 outputMem_首段 (B)&quot;] -- 规约 --&gt; AB[&quot;NPU0 outputMem_第二段 (A+B)&quot;]</span><br><span class="line">    A[&quot;NPU0 outputMem_第二段 (A)&quot;] -- 参与规约 --&gt; AB</span><br></pre></td></tr></table></figure>
+
+
+
+<blockquote>
+<p>在 <code>RunAllReduceHDOptim</code> 的 for 循环里：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (u32 step = <span class="number">1</span>; step &lt;= nSteps; step++) &#123;</span><br><span class="line"> <span class="keyword">if</span> ((step != nSteps) || (stepPow != rankSize)) &#123;</span><br><span class="line">     dst = outputMem_.<span class="built_in">range</span>(step * totalSize, totalSize);</span><br><span class="line"> &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">     dst = userMemOut.<span class="built_in">range</span>(<span class="number">0</span>, totalSize);</span><br><span class="line"> &#125;</span><br><span class="line"> <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+</blockquote>
+<p> 什么时候会走到 <code>dst = userMemOut.range(0, totalSize);</code>？</p>
+<blockquote>
+<ul>
+<li>只有在<strong>最后一步</strong>（step &#x3D;&#x3D; nSteps）<strong>且</strong>（stepPow &#x3D;&#x3D; rankSize）时，才会走到这句。</li>
+<li>也就是说，<strong>只有在最后一次规约，并且rank数是2的幂</strong>时，规约结果才会直接写到 userMemOut（最终输出buffer）。</li>
+</ul>
+<hr>
+</blockquote>
+<p> 第一次规约时的 dst</p>
+<blockquote>
+<ul>
+<li><p>第一次规约（step&#x3D;1），条件 <code>step != nSteps</code> 肯定成立，所以会走：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dst = outputMem_.<span class="built_in">range</span>(step * totalSize, totalSize);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>也就是<strong>outputMem_ 的第二段</strong>（step&#x3D;1时，偏移totalSize）。</p>
+</li>
+</ul>
+<hr>
+</blockquote>
+<p> 你看到的 <code>dst = userMemOut.range(0, totalSize);</code> 是<strong>最后一步</strong>的情况</p>
+<blockquote>
+<ul>
+<li>这时规约结果直接写到最终输出buffer（userMemOut），而不是outputMem_的某一段。</li>
+</ul>
+<hr>
+</blockquote>
+<p> 总结</p>
+<blockquote>
+<ul>
+<li><strong>第一次规约</strong>：dst 指向 outputMem_ 的第二段（不是 userMemOut）。</li>
+<li><strong>最后一次规约</strong>（step&#x3D;&#x3D;nSteps 且 stepPow&#x3D;&#x3D;rankSize）：dst 指向 userMemOut（最终输出）。</li>
+<li>你看到的 <code>dst = userMemOut.range(0, totalSize);</code> 只在最后一步才会用到。</li>
+</ul>
+<hr>
+</blockquote>
+<p> 图示</p>
+<blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">flowchart TD</span><br><span class="line">    subgraph 第一次规约</span><br><span class="line">        A1[&quot;outputMem_首段&quot;] --&gt;|src| Reduce1</span><br><span class="line">        B1[&quot;outputMem_第二段&quot;] --&gt;|dst| Reduce1</span><br><span class="line">        Reduce1[&quot;HcclReduceAsync: 规约结果写回outputMem_第二段&quot;]</span><br><span class="line">    end</span><br><span class="line">    subgraph 最后一次规约</span><br><span class="line">        A2[&quot;outputMem_某段&quot;] --&gt;|src| Reduce2</span><br><span class="line">        B2[&quot;userMemOut&quot;] --&gt;|dst| Reduce2</span><br><span class="line">        Reduce2[&quot;HcclReduceAsync: 规约结果写回userMemOut&quot;]</span><br><span class="line">    end</span><br></pre></td></tr></table></figure>
+
+
+</blockquote>
+<h1 id="内存分段的作用"><a href="#内存分段的作用" class="headerlink" title="内存分段的作用"></a>内存分段的作用</h1><p>内存中分了若干段，这些段其实是一片内存用指针定位</p>
+<h3 id="第一段的来源"><a href="#第一段的来源" class="headerlink" title="第一段的来源"></a>第一段的来源</h3><ul>
+<li>在 RunPreCopy 阶段，<code>outputMem_.range(0, totalSize)</code>（第一段）被用来存放<strong>本地输入数据的拷贝</strong>。</li>
+<li>也就是说，最初 outputMem_ 的第一段 &#x3D; 本NPU的 userMemIn。</li>
+</ul>
+<h3 id="第一段的用途"><a href="#第一段的用途" class="headerlink" title="第一段的用途"></a>第一段的用途</h3><h3 id="作为后续规约的“输入源”"><a href="#作为后续规约的“输入源”" class="headerlink" title="作为后续规约的“输入源”"></a>作为后续规约的“输入源”</h3><ul>
+<li>在后续的规约步骤中，<strong>邻居NPU会通过通信链路读取本NPU outputMem_ 的第一段</strong>，把它作为规约的输入。</li>
+<li>也就是说，<strong>本NPU outputMem_ 的第一段，实际上是“被邻居用来做规约”的数据源</strong>。</li>
+</ul>
+<h3 id="本地不再直接用"><a href="#本地不再直接用" class="headerlink" title="本地不再直接用"></a>本地不再直接用</h3><ul>
+<li>本NPU自己在规约时，**用的是 outputMem_ 的第二段、第三段…**，每一步都写到新的段。</li>
+<li>本NPU outputMem_ 的第一段，<strong>本地一般不会再直接用</strong>，而是“为邻居提供数据”。</li>
+</ul>
+<ol start="3">
+<li>数据流动举例（4NPU，第一次规约）</li>
+</ol>
+<ul>
+<li>NPU0 outputMem_ 第一段（A）会被 NPU1 读取，和 NPU1 的 outputMem_ 第二段（B）做规约。</li>
+<li>同理，NPU1 outputMem_ 第一段（B）会被 NPU0 读取，和 NPU0 的 outputMem_ 第二段（A）做规约。</li>
+</ul>
+<h3 id="图示"><a href="#图示" class="headerlink" title="图示"></a>图示</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">flowchart TD</span><br><span class="line">    subgraph NPU0</span><br><span class="line">        A0[&quot;outputMem_第一段:A&quot;]</span><br><span class="line">        B0[&quot;outputMem_第二段:A&quot;]</span><br><span class="line">    end</span><br><span class="line">    subgraph NPU1</span><br><span class="line">        A1[&quot;outputMem_第一段:B&quot;]</span><br><span class="line">        B1[&quot;outputMem_第二段:B&quot;]</span><br><span class="line">    end</span><br><span class="line">    A0 -- 被NPU1读取 --&gt; B1</span><br><span class="line">    A1 -- 被NPU0读取 --&gt; B0</span><br></pre></td></tr></table></figure>
+
+<hr>
+<ul>
+<li><p>多段切片让每一步的数据流动互不干扰，便于调度和并发。</p>
+</li>
+<li><p>比如：</p>
+</li>
+<li><p>第一步规约写 outputMem_ 的第二段</p>
+</li>
+<li><p>第二步规约写 outputMem_ 的第三段</p>
+</li>
+<li><p>…依此类推</p>
+</li>
+<li><p>如果硬件&#x2F;驱动支持多 stream 并行，理论上可以让多步规约在不同 stream、不同内存段上重叠执行，实现真正的流水线并行。</p>
+</li>
+</ul>
+<h1 id="stream的作用"><a href="#stream的作用" class="headerlink" title="stream的作用"></a>stream的作用</h1><h2 id="主stream（stream-）的作用"><a href="#主stream（stream-）的作用" class="headerlink" title="主stream（stream_）的作用"></a>主stream（stream_）的作用</h2><h3 id="主控-调度"><a href="#主控-调度" class="headerlink" title="主控&#x2F;调度"></a>主控&#x2F;调度</h3><ul>
+<li>主 stream 负责<strong>调度整个 AllReduce 算法的主流程</strong>，包括：<ul>
+<li>各步规约的串行推进</li>
+<li>各种本地数据拷贝</li>
+<li>各步之间的同步与协调</li>
+</ul>
+</li>
+</ul>
+<h3 id="本地操作-串行任务"><a href="#本地操作-串行任务" class="headerlink" title="本地操作&#x2F;串行任务"></a>本地操作&#x2F;串行任务</h3><ul>
+<li>很多<strong>本地操作</strong>（如本地内存拷贝、数据准备、最终结果写回 userMemOut）都是在主 stream 上执行的。</li>
+<li>这些操作通常不需要并行，或者需要和所有子 stream 同步后再执行。</li>
+</ul>
+<h3 id="信号同步的主控方"><a href="#信号同步的主控方" class="headerlink" title="信号同步的主控方"></a>信号同步的主控方</h3><ul>
+<li>主 stream 负责和子 stream 之间的同步（如 MainRecordSub、MainWaitSub 等），确保多 stream 并行任务的正确时序。</li>
+<li>例如：主 stream 先发信号，子 stream 执行任务，主 stream 等待所有子 stream 完成后再推进下一步。</li>
+</ul>
+<h3 id="作为“默认流”"><a href="#作为“默认流”" class="headerlink" title="作为“默认流”"></a>作为“默认流”</h3><ul>
+<li>在很多异步计算&#x2F;通信框架中，主 stream 是“默认流”，所有没有特别指定 stream 的操作都会在主 stream 上执行。</li>
+<li>这样可以保证主流程的串行性和可控性。</li>
+</ul>
+<h3 id="代码举例"><a href="#代码举例" class="headerlink" title="代码举例"></a>代码举例</h3><ul>
+<li><p>你会看到很多本地操作、同步操作都是用 <code>stream_</code> 作为参数传递的：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, dst, src, stream_));</span><br><span class="line"><span class="built_in">CHK_RET</span>(LocalNotify::<span class="built_in">Wait</span>(stream_, dispatcher_, ...));</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>而子 stream 只在需要并行&#x2F;异步通信时才用到。</p>
+</li>
+</ul>
+<p>图示</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">flowchart TD</span><br><span class="line">    主流程[&quot;主stream (stream_)&quot;] --&gt;|调度| 步骤1</span><br><span class="line">    主流程 --&gt;|调度| 步骤2</span><br><span class="line">    步骤1 --&gt;|发信号| 子stream1</span><br><span class="line">    步骤1 --&gt;|发信号| 子stream2</span><br><span class="line">    子stream1 --&gt;|完成| 主stream</span><br><span class="line">    子stream2 --&gt;|完成| 主stream</span><br><span class="line">    主stream --&gt;|推进| 步骤2</span><br></pre></td></tr></table></figure>
+
+<p>总结</p>
+<ul>
+<li><strong>主 stream 是整个 AllReduce 算法的“主控流”</strong>，负责主流程推进、本地操作、全局同步。</li>
+<li><strong>子 stream 是“并行流”</strong>，负责单方向&#x2F;分组的通信和规约，实现并发。</li>
+<li>主 stream 和子 stream 协同工作，既保证了并行性能，又保证了流程的正确性和可控性。</li>
+</ul>
+<hr>
+<h2 id="子流"><a href="#子流" class="headerlink" title="子流"></a>子流</h2><h3 id="子流的典型用法场景"><a href="#子流的典型用法场景" class="headerlink" title="子流的典型用法场景"></a>子流的典型用法场景</h3><p>在 AllReduceHDOptim 代码中，<strong>子流（meshStreams_）主要用于多方向&#x2F;多分组的并行通信和规约</strong>。<br>比如在 <code>RunBetweenStep</code>、<code>RunAllReduceHDOptim</code> 等函数中，部分通信&#x2F;拷贝&#x2F;规约操作会分配到不同的子流上。</p>
+<hr>
+<h3 id="代码片段举例"><a href="#代码片段举例" class="headerlink" title="代码片段举例"></a>代码片段举例</h3><p>以 <code>RunBetweenStep</code> 为例（部分伪代码，突出子流用法）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">src = outputMem_.<span class="built_in">range</span>(step * totalSize, totalSize);</span><br><span class="line"><span class="keyword">if</span> ((step == (nSteps - <span class="number">1</span>)) &amp;&amp; (<span class="built_in">static_cast</span>&lt;u32&gt;(<span class="built_in">pow</span>(base, nSteps)) == rankSize)) &#123;</span><br><span class="line">    dst = userMemOut.<span class="built_in">range</span>(<span class="number">0</span>, totalSize);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    dst = outputMem_.<span class="built_in">range</span>((step + <span class="number">1</span>) * totalSize, totalSize);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 这里用到子流</span></span><br><span class="line"><span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, dst, src, aicpu_ ? stream_ : meshStreams_[<span class="number">0</span>]));</span><br><span class="line"></span><br><span class="line"><span class="built_in">CHK_RET</span>(links[neighNext]-&gt;<span class="built_in">TxAck</span>(aicpu_ ? stream_ : meshStreams_[<span class="number">1</span>]));</span><br><span class="line"><span class="built_in">CHK_RET</span>(links[neighNext]-&gt;<span class="built_in">RxAck</span>(aicpu_ ? stream_ : meshStreams_[<span class="number">1</span>]));</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="例子说明（以4NPU为例）"><a href="#例子说明（以4NPU为例）" class="headerlink" title="例子说明（以4NPU为例）"></a>例子说明（以4NPU为例）</h3><p>假设 base&#x3D;2，meshStreams_ 有2个子流：meshStreams_[0]、meshStreams_[1]。</p>
+<h4 id="场景：第二步规约（step-2）"><a href="#场景：第二步规约（step-2）" class="headerlink" title="场景：第二步规约（step&#x3D;2）"></a>场景：第二步规约（step&#x3D;2）</h4><ul>
+<li>需要同时和两个方向的邻居通信（比如左邻居、右邻居）。</li>
+<li>为了并行推进，**把和左邻居的通信放到 meshStreams_[0]，和右邻居的通信放到 meshStreams_[1]**。</li>
+</ul>
+<h4 id="具体操作"><a href="#具体操作" class="headerlink" title="具体操作"></a>具体操作</h4><ul>
+<li><p><strong>本地数据拷贝&#x2F;规约</strong>：用 meshStreams_[0] 执行</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, dst, src, meshStreams_[<span class="number">0</span>]);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>和右邻居的同步&#x2F;通信</strong>：用 meshStreams_[1] 执行</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">links[neighNext]-&gt;<span class="built_in">TxAck</span>(meshStreams_[<span class="number">1</span>]);</span><br><span class="line">links[neighNext]-&gt;<span class="built_in">RxAck</span>(meshStreams_[<span class="number">1</span>]);</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="这样做的好处"><a href="#这样做的好处" class="headerlink" title="这样做的好处"></a>这样做的好处</h4><ul>
+<li>两个方向的通信&#x2F;规约可以<strong>同时在不同 stream 上异步进行</strong>，互不阻塞，提升并行度和带宽利用率。</li>
+</ul>
+<hr>
+<h3 id="图示-1"><a href="#图示-1" class="headerlink" title="图示"></a>图示</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant 主stream</span><br><span class="line">    participant 子stream0</span><br><span class="line">    participant 子stream1</span><br><span class="line">    主stream-&gt;&gt;子stream0: 发起本地数据拷贝/规约</span><br><span class="line">    主stream-&gt;&gt;子stream1: 发起与右邻居的通信</span><br><span class="line">    子stream0--&gt;&gt;主stream: 完成信号</span><br><span class="line">    子stream1--&gt;&gt;主stream: 完成信号</span><br><span class="line">    主stream-&gt;&gt;主stream: 推进下一步</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>你的理解很细致，也非常接近实际！<br>我们来<strong>澄清主stream和子stream的分工</strong>，并解答你关于“本地没拷贝完，子stream是不是没法启动”的性能困惑。</p>
+<h3 id="主stream和子stream的分工澄清"><a href="#主stream和子stream的分工澄清" class="headerlink" title="主stream和子stream的分工澄清"></a>主stream和子stream的分工澄清</h3><ul>
+<li><p><strong>主stream（stream_）</strong>：<br>主要负责本地数据的准备、拷贝、主流程调度和全局同步。</p>
+<ul>
+<li>例如：userMemIn → outputMem_ 的本地拷贝，通常在主stream上完成。</li>
+<li>还负责发起&#x2F;等待所有子stream的同步信号，推进主流程。</li>
+</ul>
+</li>
+<li><p><strong>子stream（meshStreams_[0]、meshStreams_[1]）</strong>：<br>主要负责与左右邻居的通信和规约操作，实现并行。</p>
+<ul>
+<li>meshStreams_[0] 可能负责“左邻居”方向的通信&#x2F;规约</li>
+<li>meshStreams_[1] 可能负责“右邻居”方向的通信&#x2F;规约</li>
+</ul>
+</li>
+</ul>
+<h4 id="代码举例（更准确的分工）"><a href="#代码举例（更准确的分工）" class="headerlink" title="代码举例（更准确的分工）"></a>代码举例（更准确的分工）</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 本地数据拷贝（主stream）</span></span><br><span class="line"><span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, dst, src, stream_));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 与左邻居通信（子stream0）</span></span><br><span class="line"><span class="built_in">CHK_RET</span>(links[leftNeigh]-&gt;<span class="built_in">TxAck</span>(meshStreams_[<span class="number">0</span>]));</span><br><span class="line"><span class="built_in">CHK_RET</span>(links[leftNeigh]-&gt;<span class="built_in">RxAck</span>(meshStreams_[<span class="number">0</span>]));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 与右邻居通信（子stream1）</span></span><br><span class="line"><span class="built_in">CHK_RET</span>(links[rightNeigh]-&gt;<span class="built_in">TxAck</span>(meshStreams_[<span class="number">1</span>]));</span><br><span class="line"><span class="built_in">CHK_RET</span>(links[rightNeigh]-&gt;<span class="built_in">RxAck</span>(meshStreams_[<span class="number">1</span>]));</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="性能困惑解答：本地没拷贝完，子stream能否启动？"><a href="#性能困惑解答：本地没拷贝完，子stream能否启动？" class="headerlink" title="性能困惑解答：本地没拷贝完，子stream能否启动？"></a>性能困惑解答：本地没拷贝完，子stream能否启动？</h3><h4 id="理论上"><a href="#理论上" class="headerlink" title="理论上"></a>理论上</h4><ul>
+<li><strong>如果子stream的操作依赖于本地拷贝的结果</strong>（比如 outputMem_ 的某段），那么必须等本地拷贝完成后，子stream才能安全启动。</li>
+<li>这就需要<strong>主stream和子stream之间有同步&#x2F;信号机制</strong>，确保数据依赖关系不被破坏。</li>
+</ul>
+<h4 id="实际实现"><a href="#实际实现" class="headerlink" title="实际实现"></a>实际实现</h4><ul>
+<li>代码中通常会有如下同步机制：<ul>
+<li>主stream完成本地拷贝后，发信号（如 LocalNotify::Post）</li>
+<li>子stream等待信号（如 LocalNotify::Wait），收到信号后才开始通信&#x2F;规约</li>
+</ul>
+</li>
+<li>这样可以保证<strong>数据依赖被正确管理</strong>，但也意味着<strong>子stream的启动会被本地拷贝的完成所阻塞</strong>。</li>
+</ul>
+<h4 id="性能影响"><a href="#性能影响" class="headerlink" title="性能影响"></a>性能影响</h4><ul>
+<li>如果本地拷贝很快（如NPU内部DMA），这部分阻塞很短，整体性能影响较小。</li>
+<li>如果本地拷贝慢，确实会拖慢子stream的启动，影响并行度。</li>
+<li><strong>理想的流水线并行</strong>，是让本地拷贝和通信&#x2F;规约能最大程度重叠，但前提是数据依赖允许。</li>
+</ul>
+<hr>
+<h3 id="图示-2"><a href="#图示-2" class="headerlink" title="图示"></a>图示</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant 主stream</span><br><span class="line">    participant 子stream0</span><br><span class="line">    participant 子stream1</span><br><span class="line">    主stream-&gt;&gt;主stream: 本地数据拷贝</span><br><span class="line">    主stream-&gt;&gt;子stream0: 发信号（拷贝完成）</span><br><span class="line">    主stream-&gt;&gt;子stream1: 发信号（拷贝完成）</span><br><span class="line">    子stream0-&gt;&gt;子stream0: 与左邻居通信/规约</span><br><span class="line">    子stream1-&gt;&gt;子stream1: 与右邻居通信/规约</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><ul>
+<li><strong>主stream负责本地数据准备和全局调度，子stream负责并行的方向性通信&#x2F;规约。</strong></li>
+<li><strong>子stream的启动通常依赖于主stream完成本地拷贝后的信号</strong>，这保证了数据正确性，但也可能带来性能上的串行瓶颈。</li>
+<li><strong>优化方向</strong>：尽量让本地拷贝和通信&#x2F;规约重叠，减少阻塞，提升并行度。</li>
+</ul>
+<p>非常棒！下面我以“<strong>七、signal</strong>”为一级标题，<br>用<strong>代码+图文</strong>详细讲解 AllReduceHDOptim 中的信号（signal）机制。</p>
+<hr>
+<h1 id="signal"><a href="#signal" class="headerlink" title="signal"></a>signal</h1><h2 id="信号机制的作用"><a href="#信号机制的作用" class="headerlink" title="信号机制的作用"></a>信号机制的作用</h2><ul>
+<li><strong>信号（signal）机制</strong>用于<strong>主stream和子stream之间的同步</strong>，确保数据依赖关系正确、并行任务有序推进。</li>
+<li>典型场景：主stream完成本地拷贝后，通知子stream可以开始通信&#x2F;规约；子stream完成后，通知主stream可以推进下一步。</li>
+</ul>
+<hr>
+<h2 id="相关数据结构"><a href="#相关数据结构" class="headerlink" title="相关数据结构"></a>相关数据结构</h2><ul>
+<li><code>meshSignal_</code>、<code>meshSignalAux_</code>：<br><code>std::vector&lt;std::shared_ptr&lt;LocalNotify&gt;&gt;</code>，每个stream配一个signal对象。</li>
+<li><code>LocalNotify::Post</code>：主stream&#x2F;子stream发信号（通知“我完成了”）。</li>
+<li><code>LocalNotify::Wait</code>：主stream&#x2F;子stream等待信号（等待“你完成了”）。</li>
+</ul>
+<hr>
+<h2 id="典型代码片段"><a href="#典型代码片段" class="headerlink" title="典型代码片段"></a>典型代码片段</h2><h3 id="主stream通知子stream（Post信号）"><a href="#主stream通知子stream（Post信号）" class="headerlink" title="主stream通知子stream（Post信号）"></a>主stream通知子stream（Post信号）</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 主stream发信号，通知所有子stream可以开始</span></span><br><span class="line"><span class="keyword">for</span> (u32 signalIndex = <span class="number">0</span>; signalIndex &lt; streamNum; signalIndex++) &#123;</span><br><span class="line">    <span class="built_in">CHK_RET</span>(LocalNotify::<span class="built_in">Post</span>(</span><br><span class="line">        stream_,                  <span class="comment">// 当前stream（主stream）</span></span><br><span class="line">        dispatcher_,              <span class="comment">// 调度器对象</span></span><br><span class="line">        (*meshSignalAux_)[signalIndex], <span class="comment">// 信号对象，通常与子stream一一对应</span></span><br><span class="line">        profilerInput_.stage      <span class="comment">// 当前profiling阶段（可用于调试/性能分析）</span></span><br><span class="line">    ));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>**stream_**：主stream</p>
+</li>
+<li><p>**dispatcher_**：调度器</p>
+</li>
+<li><p>**(*meshSignalAux_)[signalIndex]**：第 signalIndex 个信号对象（给子stream用）</p>
+<blockquote>
+<h2 id="meshSignalAux-和-meshStreams-的一一对应关系"><a href="#meshSignalAux-和-meshStreams-的一一对应关系" class="headerlink" title="meshSignalAux_ 和 meshStreams_ 的一一对应关系"></a>meshSignalAux_ 和 meshStreams_ 的一一对应关系</h2><h3 id="1-初始化与传递"><a href="#1-初始化与传递" class="headerlink" title="1. 初始化与传递"></a>1. 初始化与传递</h3><ul>
+<li><p>在 AllReduceHDOptim 的 <code>Prepare</code> 函数中，<code>meshStreams_</code> 和 <code>meshSignalAux_</code> 都是作为参数传进来的，通常在外部初始化时就已经一一对应好。</p>
+</li>
+<li><p>例如：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">HcclResult <span class="title">AllReduceHDOptim::Prepare</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">    u64 reduceAttrBitMap,</span></span></span><br><span class="line"><span class="params"><span class="function">    std::vector&lt;Stream&gt; &amp;meshStreams,</span></span></span><br><span class="line"><span class="params"><span class="function">    std::vector&lt;std::shared_ptr&lt;LocalNotify&gt;&gt; &amp;meshSignal,</span></span></span><br><span class="line"><span class="params"><span class="function">    std::vector&lt;std::shared_ptr&lt;LocalNotify&gt;&gt; &amp;meshSignalAux,</span></span></span><br><span class="line"><span class="params"><span class="function">    u32 userRank,</span></span></span><br><span class="line"><span class="params"><span class="function">    HcomCollOpInfo *opInfo,</span></span></span><br><span class="line"><span class="params"><span class="function">    <span class="type">bool</span> aicpu)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    meshStreams_ = meshStreams;</span><br><span class="line">    meshSignalAux_ = &amp;meshSignalAux;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>这意味着<strong>meshStreams_ 和 meshSignalAux_ 的下标是严格一一对应的</strong>：  </p>
+<ul>
+<li>meshStreams_[0] &lt;-&gt; meshSignalAux_[0]  </li>
+<li>meshStreams_[1] &lt;-&gt; meshSignalAux_[1]  </li>
+<li>以此类推</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="2-对应关系的实际意义"><a href="#2-对应关系的实际意义" class="headerlink" title="2. 对应关系的实际意义"></a>2. 对应关系的实际意义</h3><ul>
+<li><strong>每个子stream负责一个方向&#x2F;分组的通信&#x2F;规约</strong>，它需要有一个专属的信号对象来和主stream同步。</li>
+<li>例如：<ul>
+<li>meshStreams_[0] 负责“左邻居”方向，meshSignalAux_[0] 就是主stream和这个方向的子stream之间的同步信号。</li>
+<li>meshStreams_[1] 负责“右邻居”方向，meshSignalAux_[1] 就是主stream和这个方向的子stream之间的同步信号。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="3-代码中的典型用法"><a href="#3-代码中的典型用法" class="headerlink" title="3. 代码中的典型用法"></a>3. 代码中的典型用法</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; meshStreams_.<span class="built_in">size</span>(); i++) &#123;</span><br><span class="line">    <span class="comment">// 主stream发信号给第i个子stream</span></span><br><span class="line">    LocalNotify::<span class="built_in">Post</span>(stream_, dispatcher_, (*meshSignalAux_)[i], profilerInput_.stage);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 第i个子stream等待自己的信号</span></span><br><span class="line">    LocalNotify::<span class="built_in">Wait</span>(meshStreams_[i], dispatcher_, (*meshSignalAux_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>这里的 <code>i</code> 保证了 meshStreams_ 和 meshSignalAux_ 的一一对应。</li>
+</ul>
+<hr>
+<h3 id="4-初始化时的保证"><a href="#4-初始化时的保证" class="headerlink" title="4. 初始化时的保证"></a>4. 初始化时的保证</h3><ul>
+<li><p>在外部初始化时，通常会这样写（伪代码）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">std::vector&lt;Stream&gt; meshStreams = &#123;streamA, streamB&#125;;</span><br><span class="line">std::vector&lt;std::shared_ptr&lt;LocalNotify&gt;&gt; meshSignalAux = &#123;signalA, signalB&#125;;</span><br><span class="line"><span class="comment">// 保证streamA &lt;-&gt; signalA, streamB &lt;-&gt; signalB</span></span><br><span class="line">allReduceHdOptim-&gt;<span class="built_in">Prepare</span>(..., meshStreams, ..., meshSignalAux, ...);</span><br></pre></td></tr></table></figure></li>
+</ul>
+<hr>
+<h3 id="5-图示"><a href="#5-图示" class="headerlink" title="5. 图示"></a>5. 图示</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">flowchart TD</span><br><span class="line">    subgraph 子stream与信号一一对应</span><br><span class="line">        meshStreams_0[&quot;meshStreams_[0] (左方向)&quot;] &lt;--&gt; meshSignalAux_0[&quot;meshSignalAux_[0]&quot;]</span><br><span class="line">        meshStreams_1[&quot;meshStreams_[1] (右方向)&quot;] &lt;--&gt; meshSignalAux_1[&quot;meshSignalAux_[1]&quot;]</span><br><span class="line">    end</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h2><ul>
+<li><strong>meshSignalAux_ 和 meshStreams_ 的下标严格一一对应</strong>，每个子stream有自己专属的信号对象用于与主stream同步。</li>
+<li>这种设计保证了多方向&#x2F;多分组的并行通信和同步不会混淆，代码实现也更简洁安全。</li>
+</ul>
+</blockquote>
+</li>
+<li><p><strong>profilerInput_.stage</strong>：profiling阶段</p>
+</li>
+</ul>
+<hr>
+<h3 id="子stream等待主stream（Wait信号）"><a href="#子stream等待主stream（Wait信号）" class="headerlink" title="子stream等待主stream（Wait信号）"></a>子stream等待主stream（Wait信号）</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 子stream等待主stream信号，收到后才开始</span></span><br><span class="line"><span class="keyword">for</span> (u32 streamIndex = <span class="number">0</span>; streamIndex &lt; streamNum; streamIndex++) &#123;</span><br><span class="line">    <span class="built_in">CHK_RET</span>(LocalNotify::<span class="built_in">Wait</span>(</span><br><span class="line">        meshStreams_[streamIndex],      <span class="comment">// 当前子stream</span></span><br><span class="line">        dispatcher_,                    <span class="comment">// 调度器对象</span></span><br><span class="line">        (*meshSignalAux_)[streamIndex], <span class="comment">// 对应的信号对象</span></span><br><span class="line">        profilerInput_.stage            <span class="comment">// profiling阶段</span></span><br><span class="line">    ));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>**meshStreams_[streamIndex]**：第 streamIndex 个子stream</li>
+<li>**(*meshSignalAux_)[streamIndex]**：与该子stream对应的信号对象</li>
+</ul>
+<hr>
+<h3 id="子stream完成后通知主stream（Post信号）"><a href="#子stream完成后通知主stream（Post信号）" class="headerlink" title="子stream完成后通知主stream（Post信号）"></a>子stream完成后通知主stream（Post信号）</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 子stream发信号，通知主stream“我完成了”</span></span><br><span class="line"><span class="keyword">for</span> (u32 streamIndex = <span class="number">0</span>; streamIndex &lt; streamNum; streamIndex++) &#123;</span><br><span class="line">    <span class="built_in">CHK_RET</span>(LocalNotify::<span class="built_in">Post</span>(</span><br><span class="line">        meshStreams_[streamIndex],  <span class="comment">// 当前子stream</span></span><br><span class="line">        dispatcher_,                <span class="comment">// 调度器对象</span></span><br><span class="line">        (*meshSignal_)[streamIndex],<span class="comment">// 对应的信号对象（主stream用来等待）</span></span><br><span class="line">        profilerInput_.stage        <span class="comment">// profiling阶段</span></span><br><span class="line">    ));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>**(*meshSignal_)[streamIndex]**：主stream等待的信号对象</li>
+</ul>
+<hr>
+<h3 id="主stream等待所有子stream完成（Wait信号）"><a href="#主stream等待所有子stream完成（Wait信号）" class="headerlink" title="主stream等待所有子stream完成（Wait信号）"></a>主stream等待所有子stream完成（Wait信号）</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 主stream等待所有子stream完成</span></span><br><span class="line"><span class="keyword">for</span> (u32 signalIndex = <span class="number">0</span>; signalIndex &lt; streamNum; signalIndex++) &#123;</span><br><span class="line">    <span class="built_in">CHK_RET</span>(LocalNotify::<span class="built_in">Wait</span>(</span><br><span class="line">        stream_,                  <span class="comment">// 主stream</span></span><br><span class="line">        dispatcher_,              <span class="comment">// 调度器对象</span></span><br><span class="line">        (*meshSignal_)[signalIndex], <span class="comment">// 对应的信号对象</span></span><br><span class="line">        profilerInput_.stage      <span class="comment">// profiling阶段</span></span><br><span class="line">    ));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="代码中信号机制的实际用法（以-MainRecordSub-和-SubWaitMain-为例）"><a href="#代码中信号机制的实际用法（以-MainRecordSub-和-SubWaitMain-为例）" class="headerlink" title="代码中信号机制的实际用法（以 MainRecordSub 和 SubWaitMain 为例）"></a>代码中信号机制的实际用法（以 MainRecordSub 和 SubWaitMain 为例）</h3><h4 id="主stream发信号，子stream等待"><a href="#主stream发信号，子stream等待" class="headerlink" title="主stream发信号，子stream等待"></a>主stream发信号，子stream等待</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 主stream发信号</span></span><br><span class="line"><span class="function">HcclResult <span class="title">AllReduceHDOptim::MainRecordSub</span><span class="params">(u32 streamNum)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(aicpu_) <span class="keyword">return</span> HCCL_SUCCESS;</span><br><span class="line">    <span class="keyword">for</span> (u32 signalIndex = <span class="number">0</span>; signalIndex &lt; streamNum; signalIndex++) &#123;</span><br><span class="line">        <span class="built_in">CHK_RET</span>(LocalNotify::<span class="built_in">Post</span>(stream_, dispatcher_, (*meshSignalAux_)[signalIndex], profilerInput_.stage));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> HCCL_SUCCESS;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 子stream等待信号</span></span><br><span class="line"><span class="function">HcclResult <span class="title">AllReduceHDOptim::SubWaitMain</span><span class="params">(u32 streamNum)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(aicpu_) <span class="keyword">return</span> HCCL_SUCCESS;</span><br><span class="line">    <span class="keyword">for</span> (u32 streamIndex = <span class="number">0</span>; streamIndex &lt; streamNum; streamIndex++) &#123;</span><br><span class="line">        <span class="built_in">CHK_RET</span>(LocalNotify::<span class="built_in">Wait</span>(meshStreams_[streamIndex], dispatcher_, (*meshSignalAux_)[streamIndex], profilerInput_.stage));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> HCCL_SUCCESS;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="用法流程"><a href="#用法流程" class="headerlink" title="用法流程"></a>用法流程</h4><ol>
+<li>主stream调用 <code>MainRecordSub</code>，对每个子stream的信号对象 <code>Post</code>。</li>
+<li>子stream调用 <code>SubWaitMain</code>，对每个信号对象 <code>Wait</code>，收到信号后才开始执行通信&#x2F;规约。</li>
+<li>反向同步时，子stream <code>Post</code>，主stream <code>Wait</code>，实现“所有子stream完成后主stream再推进”。</li>
+</ol>
+<hr>
+<h2 id="图示：信号同步流程"><a href="#图示：信号同步流程" class="headerlink" title="图示：信号同步流程"></a>图示：信号同步流程</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant 主stream</span><br><span class="line">    participant 子stream0</span><br><span class="line">    participant 子stream1</span><br><span class="line"></span><br><span class="line">    主stream-&gt;&gt;主stream: 本地数据拷贝</span><br><span class="line">    主stream-&gt;&gt;子stream0: Post信号（meshSignalAux_[0]）</span><br><span class="line">    主stream-&gt;&gt;子stream1: Post信号（meshSignalAux_[1]）</span><br><span class="line">    子stream0-&gt;&gt;子stream0: Wait信号（meshSignalAux_[0]），收到后开始通信/规约</span><br><span class="line">    子stream1-&gt;&gt;子stream1: Wait信号（meshSignalAux_[1]），收到后开始通信/规约</span><br><span class="line"></span><br><span class="line">    子stream0-&gt;&gt;主stream: Post信号（meshSignal_[0]），通知主stream“我完成了”</span><br><span class="line">    子stream1-&gt;&gt;主stream: Post信号（meshSignal_[1]），通知主stream“我完成了”</span><br><span class="line">    主stream-&gt;&gt;主stream: Wait信号（meshSignal_[0]、meshSignal_[1]），收到后推进下一步</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="profilerInput-stage-的作用"><a href="#profilerInput-stage-的作用" class="headerlink" title="profilerInput_.stage 的作用"></a>profilerInput_.stage 的作用</h2><h3 id="变量来源"><a href="#变量来源" class="headerlink" title="变量来源"></a>变量来源</h3><ul>
+<li><code>profilerInput_</code> 是 AllReduceHDOptim（继承自基类）的成员变量，类型通常为 <code>StepData</code> 或类似结构体。</li>
+<li>其中的 <code>stage</code> 字段用于标记当前操作属于 AllReduce 算法的哪个阶段（step）。</li>
+</ul>
+<hr>
+<h3 id="在信号机制中的用途"><a href="#在信号机制中的用途" class="headerlink" title="在信号机制中的用途"></a>在信号机制中的用途</h3><ul>
+<li>在调用 <code>LocalNotify::Post</code> 和 <code>LocalNotify::Wait</code> 时，传入 <code>profilerInput_.stage</code>，可以<strong>为每一次信号操作打上“阶段标签”</strong>。</li>
+<li>这样做的好处是：  <ul>
+<li>在 profiling 工具或日志中，可以精确知道每个信号&#x2F;同步操作发生在 AllReduce 的哪个阶段。</li>
+<li>便于后续性能分析、调试和瓶颈定位。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="代码示例"><a href="#代码示例" class="headerlink" title="代码示例"></a>代码示例</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">CHK_RET</span>(LocalNotify::<span class="built_in">Post</span>(</span><br><span class="line">    stream_, dispatcher_, (*meshSignalAux_)[signalIndex], profilerInput_.stage));</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>这里的 <code>profilerInput_.stage</code> 可能是 step1、step2、copy、reduce 等等。</li>
+</ul>
+<hr>
+<h3 id="profiling-的典型用途"><a href="#profiling-的典型用途" class="headerlink" title="profiling 的典型用途"></a>profiling 的典型用途</h3><ul>
+<li><strong>性能分析</strong>：统计每个阶段的耗时、等待时间、并发度等。</li>
+<li><strong>调试定位</strong>：如果某个阶段卡住或异常，可以通过 stage 快速定位问题。</li>
+<li><strong>可视化</strong>：配合 profiling 工具，可以生成 AllReduce 各阶段的时序图、火焰图等。</li>
+</ul>
+<hr>
+<h3 id="图示-3"><a href="#图示-3" class="headerlink" title="图示"></a>图示</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">flowchart TD</span><br><span class="line">    A[&quot;LocalNotify::Post(..., stage=step1)&quot;] --&gt;|profiling| B[&quot;性能分析工具&quot;]</span><br><span class="line">    C[&quot;LocalNotify::Wait(..., stage=step2)&quot;] --&gt;|profiling| B</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="profilerInput-stage-的自定义性"><a href="#profilerInput-stage-的自定义性" class="headerlink" title="profilerInput_.stage 的自定义性"></a>profilerInput_.stage 的自定义性</h2><h3 id="设计目的"><a href="#设计目的" class="headerlink" title="设计目的"></a>设计目的</h3><ul>
+<li><code>profilerInput_.stage</code> 作为 profiling&#x2F;调试的“阶段标记”，本质上就是为了让开发者&#x2F;框架<strong>灵活标记当前操作属于哪个阶段</strong>。</li>
+<li>这样可以让 profiling 工具、日志、调试输出等更有针对性和可读性。</li>
+</ul>
+<hr>
+<h3 id="如何自定义"><a href="#如何自定义" class="headerlink" title="如何自定义"></a>如何自定义</h3><ul>
+<li><p>你可以在 AllReduce 算法的不同阶段、不同函数、不同操作前<strong>手动设置 profilerInput_.stage 的值</strong>。</p>
+</li>
+<li><p>例如：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">profilerInput_.stage = <span class="number">1</span>; <span class="comment">// 标记为“本地拷贝阶段”</span></span><br><span class="line"><span class="comment">// ...本地拷贝代码...</span></span><br><span class="line">profilerInput_.stage = <span class="number">2</span>; <span class="comment">// 标记为“第一次规约阶段”</span></span><br><span class="line"><span class="comment">// ...第一次规约代码...</span></span><br><span class="line">profilerInput_.stage = <span class="number">3</span>; <span class="comment">// 标记为“第二次规约阶段”</span></span><br><span class="line"><span class="comment">// ...第二次规约代码...</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>你也可以用更语义化的枚举或常量，比如</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> <span class="title class_">AllReduceStage</span> &#123;</span><br><span class="line">    STAGE_COPY = <span class="number">1</span>,</span><br><span class="line">    STAGE_REDUCE1 = <span class="number">2</span>,</span><br><span class="line">    STAGE_REDUCE2 = <span class="number">3</span>,</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;;</span><br><span class="line">profilerInput_.stage = STAGE_COPY;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<hr>
+<h3 id="代码中的典型用法"><a href="#代码中的典型用法" class="headerlink" title="代码中的典型用法"></a>代码中的典型用法</h3><ul>
+<li><p>在每个阶段的入口处设置：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">profilerInput_.stage = STAGE_COPY;</span><br><span class="line"><span class="built_in">MainRecordSub</span>(...);</span><br><span class="line"></span><br><span class="line">profilerInput_.stage = STAGE_REDUCE1;</span><br><span class="line"><span class="built_in">SubWaitMain</span>(...);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>这样，所有用到 <code>profilerInput_.stage</code> 的信号&#x2F;同步&#x2F;日志操作都会带上你自定义的标记。</p>
+</li>
+</ul>
+<hr>
+<h3 id="profiling-工具如何利用"><a href="#profiling-工具如何利用" class="headerlink" title="profiling 工具如何利用"></a>profiling 工具如何利用</h3><ul>
+<li>profiling 工具或日志分析脚本可以根据 stage 的不同值，<strong>统计每个阶段的耗时、并发度、等待时间等</strong>，帮助你定位性能瓶颈。</li>
+</ul>
+<hr>
+<h2 id="TxAck-RxAck-与-signal-的关系"><a href="#TxAck-RxAck-与-signal-的关系" class="headerlink" title="TxAck&#x2F;RxAck 与 signal 的关系"></a>TxAck&#x2F;RxAck 与 signal 的关系</h2><h3 id="这两行的本质"><a href="#这两行的本质" class="headerlink" title="这两行的本质"></a>这两行的本质</h3><ul>
+<li><code>TxAck</code>（Transmit Acknowledge）和 <code>RxAck</code>（Receive Acknowledge）是<strong>点对点通信链路上的同步&#x2F;握手操作</strong>。</li>
+<li>它们的作用是：<strong>确保本地和远端在某一步操作前后达成一致</strong>，比如双方都准备好、可以开始数据传输或规约。</li>
+</ul>
+<h3 id="和-LocalNotify-的区别"><a href="#和-LocalNotify-的区别" class="headerlink" title="和 LocalNotify 的区别"></a>和 LocalNotify 的区别</h3><ul>
+<li><strong>LocalNotify::Post&#x2F;Wait</strong> 是<strong>本地多stream之间的同步</strong>（主stream和子stream之间的信号通知）。</li>
+<li><strong>TxAck&#x2F;RxAck</strong> 是<strong>跨NPU（跨rank）之间的同步</strong>，用于保证分布式通信的时序正确。</li>
+</ul>
+<h3 id="是否属于-signal-机制？"><a href="#是否属于-signal-机制？" class="headerlink" title="是否属于 signal 机制？"></a>是否属于 signal 机制？</h3><ul>
+<li><strong>广义上讲</strong>，它们都属于“同步&#x2F;信号机制”的一部分，因为都是用来保证多线程&#x2F;多进程&#x2F;多设备之间的协作和时序。</li>
+<li><strong>狭义上讲</strong>，TxAck&#x2F;RxAck 更偏向于“网络通信协议的握手机制”，而 LocalNotify::Post&#x2F;Wait 是“本地多stream的信号机制”。</li>
+<li>在 AllReduceHDOptim 代码结构中，<strong>TxAck&#x2F;RxAck 主要用于rank间的同步，LocalNotify 主要用于本地stream间的同步</strong>。</li>
+</ul>
+<hr>
+<h3 id="图示-4"><a href="#图示-4" class="headerlink" title="图示"></a>图示</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">flowchart TD</span><br><span class="line">    subgraph NPU0</span><br><span class="line">        S0[&quot;主stream&quot;]</span><br><span class="line">        S1[&quot;子stream&quot;]</span><br><span class="line">        S0 -- LocalNotify::Post/Wait --&gt; S1</span><br><span class="line">    end</span><br><span class="line">    subgraph NPU1</span><br><span class="line">        S0b[&quot;主stream&quot;]</span><br><span class="line">        S1b[&quot;子stream&quot;]</span><br><span class="line">    end</span><br><span class="line">    S0 -- TxAck/RxAck --&gt; S0b</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>蓝色箭头</strong>：本地信号（LocalNotify）</li>
+<li><strong>黑色箭头</strong>：跨NPU同步（TxAck&#x2F;RxAck）</li>
+</ul>
+<hr>
+<h3 id="总结-2"><a href="#总结-2" class="headerlink" title="总结"></a>总结</h3><ul>
+<li><code>TxAck</code>&#x2F;<code>RxAck</code> 是<strong>跨NPU的同步信号</strong>，属于分布式通信协议的同步机制。</li>
+<li><code>LocalNotify::Post/Wait</code> 是<strong>本地多stream的信号机制</strong>。</li>
+<li>**两者都是“信号&#x2F;同步机制”的一部分，但作用范围和实现层次不同。</li>
+</ul>
+<p>你的问题非常专业！<br>下面我会详细讲解<strong>这两行代码的具体流程</strong>，并给出<strong>如何让子流与隔壁NPU做TxAck&#x2F;RxAck的代码写法</strong>。</p>
+<hr>
+<h2 id="TxAck-RxAck-的具体流程"><a href="#TxAck-RxAck-的具体流程" class="headerlink" title="TxAck&#x2F;RxAck 的具体流程"></a>TxAck&#x2F;RxAck 的具体流程</h2><h3 id="这两行代码的作用"><a href="#这两行代码的作用" class="headerlink" title="这两行代码的作用"></a>这两行代码的作用</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">TxAck</span>(stream_));</span><br><span class="line"><span class="built_in">CHK_RET</span>(links[neighCur]-&gt;<span class="built_in">RxAck</span>(stream_));</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>TxAck</strong>：本NPU通过通信链路（links[neighCur]）向邻居NPU发送一个“我准备好了”的ack信号。</li>
+<li><strong>RxAck</strong>：本NPU等待从邻居NPU收到一个“你准备好了”的ack信号。</li>
+</ul>
+<h3 id="典型流程（以NPU0和NPU1为例）"><a href="#典型流程（以NPU0和NPU1为例）" class="headerlink" title="典型流程（以NPU0和NPU1为例）"></a>典型流程（以NPU0和NPU1为例）</h3><p>假设 NPU0 和 NPU1 互为邻居：</p>
+<ol>
+<li><strong>NPU0 执行 TxAck</strong>：  <ul>
+<li>NPU0 在 stream_ 上向 NPU1 发送“我准备好了”的ack。</li>
+</ul>
+</li>
+<li><strong>NPU0 执行 RxAck</strong>：  <ul>
+<li>NPU0 在 stream_ 上等待 NPU1 发送来的ack（NPU1也会执行TxAck）。</li>
+</ul>
+</li>
+<li><strong>只有双方都完成 TxAck&#x2F;RxAck，才会进入下一步</strong>，保证双方都已准备好，数据传输&#x2F;规约不会出错。</li>
+</ol>
+<h3 id="底层实现（简化理解）"><a href="#底层实现（简化理解）" class="headerlink" title="底层实现（简化理解）"></a>底层实现（简化理解）</h3><ul>
+<li>TxAck 可能是发一个小的同步包&#x2F;信号到对端。</li>
+<li>RxAck 可能是阻塞&#x2F;轮询&#x2F;事件等待，直到收到对端的ack包&#x2F;信号。</li>
+</ul>
+<hr>
+<p>明白！下面以“7.11. 主流、子流的同步与NPU之间的同步”为三级标题，<br><strong>重点讲清楚：主流&#x2F;子流的本地同步（LocalNotify）与NPU间同步（TxAck&#x2F;RxAck）是如何配合的</strong>，并用代码和图文说明。</p>
+<hr>
+<h3 id="主流、子流的同步与NPU之间的同步"><a href="#主流、子流的同步与NPU之间的同步" class="headerlink" title="主流、子流的同步与NPU之间的同步"></a>主流、子流的同步与NPU之间的同步</h3><h4 id="概念区分"><a href="#概念区分" class="headerlink" title="概念区分"></a>概念区分</h4><ul>
+<li><strong>主流&#x2F;子流的本地同步</strong>：  <ul>
+<li>通过 <code>LocalNotify::Post/Wait</code> 实现，主stream和子stream之间互相通知&#x2F;等待，保证本地多stream的数据依赖和并发安全。</li>
+</ul>
+</li>
+<li><strong>NPU之间的同步</strong>：  <ul>
+<li>通过 <code>TxAck/RxAck</code>（以及 TxDataSignal&#x2F;RxDataSignal 等）实现，保证不同NPU（rank）之间的通信&#x2F;规约时序正确。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h4 id="典型流程（以4NPU为例）"><a href="#典型流程（以4NPU为例）" class="headerlink" title="典型流程（以4NPU为例）"></a>典型流程（以4NPU为例）</h4><h5 id="步骤1：主流完成本地数据准备"><a href="#步骤1：主流完成本地数据准备" class="headerlink" title="步骤1：主流完成本地数据准备"></a>步骤1：主流完成本地数据准备</h5><ul>
+<li>主stream（stream_）完成本地数据拷贝后，<strong>通过 LocalNotify::Post 通知所有子stream</strong>可以开始。</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 主stream发信号给所有子stream</span></span><br><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; meshStreams_.<span class="built_in">size</span>(); i++) &#123;</span><br><span class="line">    LocalNotify::<span class="built_in">Post</span>(stream_, dispatcher_, (*meshSignalAux_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="步骤2：子流等待主流信号"><a href="#步骤2：子流等待主流信号" class="headerlink" title="步骤2：子流等待主流信号"></a>步骤2：子流等待主流信号</h5><ul>
+<li>每个子stream（meshStreams_[i]）<strong>通过 LocalNotify::Wait 等待自己的信号</strong>，收到信号后才开始与邻居NPU通信&#x2F;规约。</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 子stream等待主stream信号</span></span><br><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; meshStreams_.<span class="built_in">size</span>(); i++) &#123;</span><br><span class="line">    LocalNotify::<span class="built_in">Wait</span>(meshStreams_[i], dispatcher_, (*meshSignalAux_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="步骤3：子流与邻居NPU同步（TxAck-RxAck）"><a href="#步骤3：子流与邻居NPU同步（TxAck-RxAck）" class="headerlink" title="步骤3：子流与邻居NPU同步（TxAck&#x2F;RxAck）"></a>步骤3：子流与邻居NPU同步（TxAck&#x2F;RxAck）</h5><ul>
+<li>子stream与对应方向的邻居NPU进行点对点同步，<strong>用自己的stream和对应的links</strong>。</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 子stream与邻居NPU同步</span></span><br><span class="line"><span class="built_in">CHK_RET</span>(links[leftNeigh]-&gt;<span class="built_in">TxAck</span>(meshStreams_[<span class="number">0</span>]));</span><br><span class="line"><span class="built_in">CHK_RET</span>(links[leftNeigh]-&gt;<span class="built_in">RxAck</span>(meshStreams_[<span class="number">0</span>]));</span><br><span class="line"><span class="built_in">CHK_RET</span>(links[rightNeigh]-&gt;<span class="built_in">TxAck</span>(meshStreams_[<span class="number">1</span>]));</span><br><span class="line"><span class="built_in">CHK_RET</span>(links[rightNeigh]-&gt;<span class="built_in">RxAck</span>(meshStreams_[<span class="number">1</span>]));</span><br></pre></td></tr></table></figure>
+
+<h5 id="步骤4：子流完成后通知主流"><a href="#步骤4：子流完成后通知主流" class="headerlink" title="步骤4：子流完成后通知主流"></a>步骤4：子流完成后通知主流</h5><ul>
+<li>子stream完成通信&#x2F;规约后，<strong>通过 LocalNotify::Post 通知主stream</strong>“我完成了”。</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 子stream通知主stream</span></span><br><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; meshStreams_.<span class="built_in">size</span>(); i++) &#123;</span><br><span class="line">    LocalNotify::<span class="built_in">Post</span>(meshStreams_[i], dispatcher_, (*meshSignal_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="步骤5：主流等待所有子流完成"><a href="#步骤5：主流等待所有子流完成" class="headerlink" title="步骤5：主流等待所有子流完成"></a>步骤5：主流等待所有子流完成</h5><ul>
+<li>主stream通过 LocalNotify::Wait 等待所有子stream完成，收到信号后推进下一步。</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 主stream等待所有子stream完成</span></span><br><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; meshStreams_.<span class="built_in">size</span>(); i++) &#123;</span><br><span class="line">    LocalNotify::<span class="built_in">Wait</span>(stream_, dispatcher_, (*meshSignal_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="图文流程"><a href="#图文流程" class="headerlink" title="图文流程"></a>图文流程</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant 主stream</span><br><span class="line">    participant 子stream0</span><br><span class="line">    participant 子stream1</span><br><span class="line">    participant 邻居NPU0</span><br><span class="line">    participant 邻居NPU1</span><br><span class="line"></span><br><span class="line">    主stream-&gt;&gt;子stream0: LocalNotify::Post (本地同步)</span><br><span class="line">    主stream-&gt;&gt;子stream1: LocalNotify::Post (本地同步)</span><br><span class="line">    子stream0-&gt;&gt;子stream0: LocalNotify::Wait (收到信号)</span><br><span class="line">    子stream1-&gt;&gt;子stream1: LocalNotify::Wait (收到信号)</span><br><span class="line"></span><br><span class="line">    子stream0-&gt;&gt;邻居NPU0: TxAck/RxAck (NPU间同步)</span><br><span class="line">    子stream1-&gt;&gt;邻居NPU1: TxAck/RxAck (NPU间同步)</span><br><span class="line"></span><br><span class="line">    子stream0-&gt;&gt;主stream: LocalNotify::Post (本地同步)</span><br><span class="line">    子stream1-&gt;&gt;主stream: LocalNotify::Post (本地同步)</span><br><span class="line">    主stream-&gt;&gt;主stream: LocalNotify::Wait (收到所有子stream完成信号)</span><br></pre></td></tr></table></figure>
+
+<p>你的理解非常正确！<br><strong>本地拷贝和信号同步的顺序</strong>，就是保证数据依赖和并发安全的关键。<br><strong>只要你把本地拷贝代码写在前面，信号（LocalNotify::Post）代码写在后面，就能保证“拷贝完成后才发信号”</strong>，这样子流&#x2F;其他任务就不会提前启动，数据不会出错。</p>
+<hr>
+<h2 id="如何保证同步的正确性"><a href="#如何保证同步的正确性" class="headerlink" title="如何保证同步的正确性"></a>如何保证同步的正确性</h2><h3 id="典型写法"><a href="#典型写法" class="headerlink" title="典型写法"></a>典型写法</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 本地数据拷贝（必须先完成）</span></span><br><span class="line"><span class="built_in">CHK_RET</span>(<span class="built_in">HcclD2DMemcpyAsync</span>(dispatcher_, dst, src, stream_));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 拷贝完成后，发信号通知子stream可以开始</span></span><br><span class="line"><span class="built_in">CHK_RET</span>(LocalNotify::<span class="built_in">Post</span>(stream_, dispatcher_, (*meshSignalAux_)[i], profilerInput_.stage));</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>这样写，<strong>只有拷贝操作真正完成后，才会发信号</strong>，子stream&#x2F;其他依赖方在收到信号前不会启动。</li>
+</ul>
+<hr>
+<h3 id="子stream的等待"><a href="#子stream的等待" class="headerlink" title="子stream的等待"></a>子stream的等待</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 子stream等待信号，只有收到信号后才会继续</span></span><br><span class="line"><span class="built_in">CHK_RET</span>(LocalNotify::<span class="built_in">Wait</span>(meshStreams_[i], dispatcher_, (*meshSignalAux_)[i], profilerInput_.stage));</span><br><span class="line"><span class="comment">// ...后续通信/规约操作...</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="这样做的好处-1"><a href="#这样做的好处-1" class="headerlink" title="这样做的好处"></a>这样做的好处</h3><ul>
+<li><strong>数据依赖安全</strong>：保证所有依赖本地拷贝结果的操作都在拷贝完成后才开始。</li>
+<li><strong>并发安全</strong>：不会出现“数据还没准备好，子stream就开始用”的并发bug。</li>
+<li><strong>易于维护</strong>：代码逻辑清晰，调试和性能分析也更容易。</li>
+</ul>
+<hr>
+<h3 id="图示-5"><a href="#图示-5" class="headerlink" title="图示"></a>图示</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">    participant 主stream</span><br><span class="line">    participant 子stream</span><br><span class="line">    主stream-&gt;&gt;主stream: 本地拷贝</span><br><span class="line">    主stream-&gt;&gt;子stream: LocalNotify::Post（拷贝完成后发信号）</span><br><span class="line">    子stream-&gt;&gt;子stream: LocalNotify::Wait（收到信号后继续）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="总结-3"><a href="#总结-3" class="headerlink" title="总结"></a>总结</h3><ul>
+<li><strong>只要把本地拷贝&#x2F;计算代码写在前，信号代码写在后，就能保证同步的正确性。</strong></li>
+<li>这种“先做事，后发信号”的模式，是并发&#x2F;异步编程中最常见、最安全的同步方式。</li>
+</ul>
+<p>你的思考非常细致！<br>下面详细解答你的问题：</p>
+<hr>
+<h2 id="base、子流、信号的关系"><a href="#base、子流、信号的关系" class="headerlink" title="base、子流、信号的关系"></a>base、子流、信号的关系</h2><h3 id="base-至少为2，子流至少为2"><a href="#base-至少为2，子流至少为2" class="headerlink" title="base 至少为2，子流至少为2"></a>base 至少为2，子流至少为2</h3><ul>
+<li><strong>base</strong> 决定了每一步AllReduce涉及的“方向&#x2F;分组”数。比如两个方向（一个子流一个方向）</li>
+<li>代码中 <code>const u32 base = 2;</code>，所以<strong>每个rank至少有2个子流（meshStreams_[0]、meshStreams_[1]）</strong>，分别负责不同方向的并行通信。</li>
+</ul>
+<hr>
+<h3 id="主流和信号的关系"><a href="#主流和信号的关系" class="headerlink" title="主流和信号的关系"></a>主流和信号的关系</h3><ul>
+<li><strong>主流（stream_）</strong>：只有一个，负责主流程调度和本地数据准备。</li>
+<li><strong>信号（signal）</strong>：用于主流和每个子流之间的同步。</li>
+</ul>
+<h4 id="绑定关系"><a href="#绑定关系" class="headerlink" title="绑定关系"></a>绑定关系</h4><ul>
+<li><strong>每个子流都绑定一个信号对象</strong>，用于和主流同步。</li>
+<li>具体来说，主流和每个子流之间有一对信号（通常是 meshSignalAux_ 和 meshSignal_）：<ul>
+<li>主流发信号（LocalNotify::Post）给子流，子流等待（LocalNotify::Wait）——通知子流可以开始。</li>
+<li>子流完成后发信号（LocalNotify::Post）给主流，主流等待（LocalNotify::Wait）——通知主流可以推进下一步。</li>
+</ul>
+</li>
+</ul>
+<h4 id="代码结构"><a href="#代码结构" class="headerlink" title="代码结构"></a>代码结构</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 主流发信号给每个子流</span></span><br><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; base; i++) &#123;</span><br><span class="line">    LocalNotify::<span class="built_in">Post</span>(stream_, dispatcher_, (*meshSignalAux_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 每个子流等待自己的信号</span></span><br><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; base; i++) &#123;</span><br><span class="line">    LocalNotify::<span class="built_in">Wait</span>(meshStreams_[i], dispatcher_, (*meshSignalAux_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>这里的 <code>(*meshSignalAux_)[i]</code> 就是<strong>主流和第i个子流之间的信号对象</strong>。</li>
+</ul>
+<hr>
+<h3 id="主流本身不直接“绑定”信号"><a href="#主流本身不直接“绑定”信号" class="headerlink" title="主流本身不直接“绑定”信号"></a>主流本身不直接“绑定”信号</h3><ul>
+<li>主流不是“拥有两个信号”，而是<strong>和每个子流之间各有一个信号对象</strong>，用于一对一同步。</li>
+<li>这样设计可以灵活扩展到 base&gt;2 的情况，每个方向&#x2F;子流都能独立同步。</li>
+</ul>
+<p> 图示</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">flowchart TD</span><br><span class="line">    主流 -- 信号0 --&gt; 子流0</span><br><span class="line">    主流 -- 信号1 --&gt; 子流1</span><br><span class="line">    %% base=2时</span><br></pre></td></tr></table></figure>
+
+<h3 id="meshSignalAux-和-meshSignal-的配对关系"><a href="#meshSignalAux-和-meshSignal-的配对关系" class="headerlink" title="meshSignalAux_ 和 meshSignal_ 的配对关系"></a>meshSignalAux_ 和 meshSignal_ 的配对关系</h3><ol>
+<li>两组信号的作用</li>
+</ol>
+<ul>
+<li><p>**meshSignalAux_**：主流 → 子流的同步信号  </p>
+<ul>
+<li>主流完成本地准备后，<code>LocalNotify::Post</code> 给每个子流的 meshSignalAux_，子流 <code>LocalNotify::Wait</code>。</li>
+<li>作用：通知子流“可以开始了”。</li>
+</ul>
+</li>
+<li><p>**meshSignal_**：子流 → 主流的同步信号  </p>
+<ul>
+<li>子流完成通信&#x2F;规约后，<code>LocalNotify::Post</code> 给主流的 meshSignal_，主流 <code>LocalNotify::Wait</code>。</li>
+<li>作用：通知主流“我完成了”。</li>
+</ul>
+</li>
+</ul>
+<ol start="2">
+<li>代码配对示例</li>
+</ol>
+<p>主流通知子流</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 主流发信号给每个子流</span></span><br><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; base; i++) &#123;</span><br><span class="line">    LocalNotify::<span class="built_in">Post</span>(stream_, dispatcher_, (*meshSignalAux_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 子流等待主流信号</span></span><br><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; base; i++) &#123;</span><br><span class="line">    LocalNotify::<span class="built_in">Wait</span>(meshStreams_[i], dispatcher_, (*meshSignalAux_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>子流通知主流</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 子流完成后发信号给主流</span></span><br><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; base; i++) &#123;</span><br><span class="line">    LocalNotify::<span class="built_in">Post</span>(meshStreams_[i], dispatcher_, (*meshSignal_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 主流等待所有子流完成</span></span><br><span class="line"><span class="keyword">for</span> (u32 i = <span class="number">0</span>; i &lt; base; i++) &#123;</span><br><span class="line">    LocalNotify::<span class="built_in">Wait</span>(stream_, dispatcher_, (*meshSignal_)[i], profilerInput_.stage);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>为什么要有两组信号？</li>
+</ol>
+<ul>
+<li><strong>meshSignalAux_</strong> 用于“主流 → 子流”方向的同步（启动信号）。</li>
+<li><strong>meshSignal_</strong> 用于“子流 → 主流”方向的同步（完成信号）。</li>
+<li>这样可以实现<strong>双向同步</strong>，每个方向都能独立控制，避免死锁和竞态。</li>
+</ul>
+<ol start="4">
+<li>图示</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">flowchart TD</span><br><span class="line">    主流 -- meshSignalAux_[0] --&gt; 子流0</span><br><span class="line">    主流 -- meshSignalAux_[1] --&gt; 子流1</span><br><span class="line">    子流0 -- meshSignal_[0] --&gt; 主流</span><br><span class="line">    子流1 -- meshSignal_[1] --&gt; 主流</span><br></pre></td></tr></table></figure>
+
+<hr>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Mango03111">Mango</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://superbigmango.top/posts/7b15d684.html">https://superbigmango.top/posts/7b15d684.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://superbigmango.top" target="_blank">SuperBigMango</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Algorithm/">Algorithm</a><a class="post-meta__tags" href="/tags/Code/">Code</a><a class="post-meta__tags" href="/tags/AI/">AI</a><a class="post-meta__tags" href="/tags/Research/">Research</a></div><div class="post-share"><div class="social-share" data-image="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/posts/33a96c5a.html" title="GitHub贡献图异常增长排查与修复记录"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/lHKF/1920X1080/cover01.jpg" onerror="onerror=null;src='/img/4041.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">GitHub贡献图异常增长排查与修复记录</div></div><div class="info-2"><div class="info-item-1">摘要这次问题的表象是：GitHub 贡献图里 Mango03111/Mango03111.github.io 仓库的 commit contributions 不断上涨，早期看起来像是 3 月 11 日单日统计异常，后来发现所有与这个博客仓库相关的提交日期都在按不同倍数增长。最终确认：博客仓库存在 源码分支 hexo 和 部署分支 main 两套历史；main 原本既是 GitHub Pages 发布分支，又是仓库默认分支。GitHub 会把默认分支上的 commit 纳入贡献统计，因此部署产物分支上的 Site updated 提交被计入贡献图。再叠加 GitHub Pages &#x2F; Actions 的构建触发，贡献图出现了逐步重复计数的现象。  关键词：GitHub Contributions、GitHub Pages、Hexo、默认分支、部署分支、Actions、pages-build-deployment、.deploy_git  最终有效处理是：  关闭仓库 GitHub Actions 后，异常贡献不再继续上涨。 将仓库默认分支从部署分支 main 切换为源码...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/fa9ffbc3.html" title="DeepSeek MoE 推理是如何“边算边发”的：从 DeepEP 到 Profile Data 的拆解"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260409/N3qH/1200X675/image.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-05-06</div><div class="info-item-2">DeepSeek MoE 推理是如何“边算边发”的：从 DeepEP 到 Profile Data 的拆解</div></div><div class="info-2"><div class="info-item-1">摘要MoE 推理系统里最难建模的部分，往往不是拓扑本身，而是计算与通信的真实组织方式。同样是 expert parallelism，Prefill 更像高吞吐、大批量、长计算核与长尾通信的重叠问题；Decode 则更像低时延、小步长、高频短通信的尾延迟问题。两者虽然都属于推理阶段，但在时间线上几乎表现为两种不同系统。 本文基于 DeepSeek 开源的 DeepEP、profile-data 中的 PyTorch Profiler 轨迹以及 shallowsim 中的性能分析脚本，重新梳理 DeepSeek-V3 &#x2F; R1 架构家族在 MoE 推理中的关键行为特征。文章重点关注三个问题：  DeepEP 到底解决了什么问题 Prefill 和 Decode 的计算-通信模式为何截然不同 这些真实数据对后续仿真建模意味着什么  如果你关心的是 MoE 推理中的 all-to-all、双 micro-batch 重叠、SM 占用方式，或者希望在仿真器里更接近真实系统行为，这篇文章可以作为一份系统性的背景材料。 引言在做 MoE 推理系统建模时，最难的部分往往不是“网络拓扑怎...</div></div></div></a><a class="pagination-related" href="/posts/1a4047db.html" title="MRC 与 SRv6：让 10 万 GPU 级 AI 超算网络在故障中继续训练"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/PFyM/2048X1152/dc02.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-05-08</div><div class="info-item-2">MRC 与 SRv6：让 10 万 GPU 级 AI 超算网络在故障中继续训练</div></div><div class="info-2"><div class="info-item-1"> 本文改写自 OpenAI 官方工程博客《Supercomputer networking to accelerate large scale AI training》与论文《Resilient AI Supercomputer Networking using MRC and SRv6》。目标是用博客化的方式解释：为什么大规模 AI 训练需要新的网络协议，MRC 如何与多平面拓扑、SRv6 源路由一起，把“网络故障”从训练中断事件变成可被系统自动绕开的背景噪声。  论文链接：Resilient AI Supercomputer Networking using MRC and SRv6 问题不是平均带宽，而是最慢那一次通信在同步预训练中，成千上万甚至十万级 GPU 按训练 step 锁步推进。每个 step 中，GPU 之间要执行数据并行、张量并行、流水线并行、专家并行等多种通信。理想状态下，通信被尽量隐藏在计算之后；但现实里，只要某一次传输成为“长尾”，整个 step 都可能被拖慢。 这也是大规模训练网络最棘手的地方：平均吞吐量很高并不够，最慢的那条路径、最晚到达的那个包，才...</div></div></div></a><a class="pagination-related" href="/posts/2158d0a0.html" title="MOE 学习笔记"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-05-06</div><div class="info-item-2">MOE 学习笔记</div></div><div class="info-2"><div class="info-item-1">Mixture of Experts (MoE) 是一种基于多个“专家”子模型（或专家网络）的架构，它通过路由策略（通常是基于输入数据的特征）动态选择一个或多个专家进行计算。 MOE是什么？核心概念：  专家网络（Expert Network）：每个专家网络通常是一个子模型（例如一个神经网络层），它们负责处理不同类型的任务或数据特征。  路由器（Router）：路由器根据输入数据的特征来决定将其路由到哪个专家。通常，路由器会通过对输入的编码进行决策，选择一个或多个最适合的专家。  稀疏激活（Sparse Activation）：不是所有的专家都会同时激活，通常每个样本只激活一部分专家，这样可以大大减少计算量，使得 MoE 可以在不增加计算成本的情况下使用更多的专家。    MOE 的主要优势 计算效率：MoE 允许模型在不显著增加计算开销的情况下增加专家数量。通过稀疏激活，模型只计算必要的部分。 灵活性：MoE 可以灵活地为不同任务选择不同的专家，适应更复杂的任务。   路由原理MoE 模型的路由机制决定了输入数据如何分配给专家。路由的核心目的是通过选择最合适的专家来提高计算效率...</div></div></div></a><a class="pagination-related" href="/posts/f9717167.html" title="【算法笔记】广度优先搜索算法（BFS, breadth-first search）"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/u757/3840X1620/cover02.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-03-17</div><div class="info-item-2">【算法笔记】广度优先搜索算法（BFS, breadth-first search）</div></div><div class="info-2"><div class="info-item-1">标签: #图算法 #搜索算法 #中等难度 #路径查找 #连通性分析 #核心思想: 从起始节点开始，逐层向外扩展探索所有可达节点，确保先访问距离起点更近的节点。 #算法原理:BFS通过队列实现层次遍历，首先将起始节点入队并标记已访问，然后不断从队列中取出节点，访问其所有未访问的相邻节点并入队，重复此过程直到队列为空。 #复杂度分析  时间复杂度: O(V + E)，其中V为顶点数，E为边数 空间复杂度: O(V)，最坏情况下需要存储所有节点  #代码实现: 1234567891011121314151617181920212223242526272829#include &lt;queue&gt;#include &lt;vector&gt;#include &lt;unordered_set&gt;using namespace std;void BFS(int startNode, vector&lt;vector&lt;int&gt;&gt;&amp; graph) &#123;    int n = graph.size();    vector&lt;bool&gt; v...</div></div></div></a><a class="pagination-related" href="/posts/82fbdb.html" title="【算法笔记】混合整数规划（MIP, mixed integer programming）"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/lHKF/1920X1080/cover01.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-03-17</div><div class="info-item-2">【算法笔记】混合整数规划（MIP, mixed integer programming）</div></div><div class="info-2"><div class="info-item-1">标签: #数学优化 #线性规划 #高等难度 #组合优化 #决策优化 #核心思想: 在满足线性约束条件下，优化包含连续变量和整数变量的线性目标函数，解决复杂的组合优化问题。 #算法原理:MIP是线性规划(LP)的扩展，其中部分变量被限制为整数值。通过分支定界法、割平面法等方法，系统地在可行解空间中搜索最优解，结合线性松弛和整数约束处理来找到满足所有约束的最佳整数解。 #复杂度分析  时间复杂度: NP难问题，最坏情况下指数级复杂度 空间复杂度: O(2ⁿ) 在最坏情况下，其中n为整数变量个数  #代码实现: 123456789101112131415161718192021222324252627282930313233343536#include &lt;iostream&gt;#include &lt;vector&gt;#include &lt;ilcplex/ilocplex.h&gt;ILOSTLBEGINvoid solveMIP() &#123;    IloEnv env;    try &#123;        IloModel model(env);     ...</div></div></div></a><a class="pagination-related" href="/posts/33a96c5a.html" title="GitHub贡献图异常增长排查与修复记录"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/lHKF/1920X1080/cover01.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-05-11</div><div class="info-item-2">GitHub贡献图异常增长排查与修复记录</div></div><div class="info-2"><div class="info-item-1">摘要这次问题的表象是：GitHub 贡献图里 Mango03111/Mango03111.github.io 仓库的 commit contributions 不断上涨，早期看起来像是 3 月 11 日单日统计异常，后来发现所有与这个博客仓库相关的提交日期都在按不同倍数增长。最终确认：博客仓库存在 源码分支 hexo 和 部署分支 main 两套历史；main 原本既是 GitHub Pages 发布分支，又是仓库默认分支。GitHub 会把默认分支上的 commit 纳入贡献统计，因此部署产物分支上的 Site updated 提交被计入贡献图。再叠加 GitHub Pages &#x2F; Actions 的构建触发，贡献图出现了逐步重复计数的现象。  关键词：GitHub Contributions、GitHub Pages、Hexo、默认分支、部署分支、Actions、pages-build-deployment、.deploy_git  最终有效处理是：  关闭仓库 GitHub Actions 后，异常贡献不再继续上涨。 将仓库默认分支从部署分支 main 切换为源码...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/67-meme-67.gif'" alt="avatar"/></div><div class="author-info-name">Mango</div><div class="author-info-description">给时光以生命，给岁月以文明</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">26</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Mango03111" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:yixuanhao_xidian@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #24292e;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到Big Mango的空间！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E6%B5%81%E7%A8%8B%E6%A2%B3%E7%90%86"><span class="toc-number">1.</span> <span class="toc-text">核心流程梳理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E8%A6%81%E6%B5%81%E7%A8%8B%E5%87%BD%E6%95%B0"><span class="toc-number">1.0.1.</span> <span class="toc-text">主要流程函数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="toc-number">1.0.2.</span> <span class="toc-text">关键数据结构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A54%E4%B8%AANPU%E4%B8%BA%E4%BE%8B%EF%BC%88rankSize-4-base-2-nSteps-2%EF%BC%89"><span class="toc-number">1.0.3.</span> <span class="toc-text">以4个NPU为例（rankSize&#x3D;4, base&#x3D;2, nSteps&#x3D;2）</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#4%E4%B8%AANPU%E7%9A%84AllReduce%E9%80%9A%E4%BF%A1%E8%BF%87%E7%A8%8B"><span class="toc-number">2.</span> <span class="toc-text">4个NPU的AllReduce通信过程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4%E5%88%86%E8%A7%A3"><span class="toc-number">2.0.1.</span> <span class="toc-text">步骤分解</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A40%EF%BC%9A%E6%95%B0%E6%8D%AE%E5%87%86%E5%A4%87%EF%BC%88RunPreCopy%EF%BC%89"><span class="toc-number">2.0.1.1.</span> <span class="toc-text">步骤0：数据准备（RunPreCopy）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A41%EF%BC%9A%E7%AC%AC%E4%B8%80%E6%AC%A1%E8%A7%84%E7%BA%A6%EF%BC%88step-1%EF%BC%89"><span class="toc-number">2.0.1.2.</span> <span class="toc-text">步骤1：第一次规约（step&#x3D;1）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A42%EF%BC%9A%E7%AC%AC%E4%BA%8C%E6%AC%A1%E8%A7%84%E7%BA%A6%EF%BC%88step-2%EF%BC%89"><span class="toc-number">2.0.1.3.</span> <span class="toc-text">步骤2：第二次规约（step&#x3D;2）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A43%EF%BC%9A%E7%BB%93%E6%9E%9C%E8%BE%93%E5%87%BA%EF%BC%88RunFinalStep%EF%BC%89"><span class="toc-number">2.0.1.4.</span> <span class="toc-text">步骤3：结果输出（RunFinalStep）</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9B%BE%E6%96%87%E7%BB%93%E5%90%88%E5%B1%95%E7%A4%BA"><span class="toc-number">3.</span> <span class="toc-text">图文结合展示</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#NPU%E7%BC%96%E5%8F%B7%E4%B8%8E%E5%88%9D%E5%A7%8B%E6%95%B0%E6%8D%AE"><span class="toc-number">3.0.1.</span> <span class="toc-text">NPU编号与初始数据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%9A%E4%BF%A1%E4%B8%8E%E6%95%B0%E6%8D%AE%E6%B5%81%E5%8A%A8%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">3.0.2.</span> <span class="toc-text">通信与数据流动时序图</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A40%EF%BC%9A%E6%95%B0%E6%8D%AE%E5%87%86%E5%A4%87"><span class="toc-number">3.0.2.1.</span> <span class="toc-text">步骤0：数据准备</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A41%EF%BC%9A%E7%AC%AC%E4%B8%80%E6%AC%A1%E8%A7%84%E7%BA%A6%EF%BC%88step-1-%E9%82%BB%E5%B1%85-rank-1%EF%BC%89"><span class="toc-number">3.0.2.2.</span> <span class="toc-text">步骤1：第一次规约（step&#x3D;1, 邻居&#x3D;rank^1）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A42%EF%BC%9A%E7%AC%AC%E4%BA%8C%E6%AC%A1%E8%A7%84%E7%BA%A6%EF%BC%88step-2-%E9%82%BB%E5%B1%85-rank-2%EF%BC%89"><span class="toc-number">3.0.2.3.</span> <span class="toc-text">步骤2：第二次规约（step&#x3D;2, 邻居&#x3D;rank^2）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A43%EF%BC%9A%E7%BB%93%E6%9E%9C%E8%BE%93%E5%87%BA"><span class="toc-number">3.0.2.4.</span> <span class="toc-text">步骤3：结果输出</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%BB%E7%BB%93%E6%80%A7%E6%95%B0%E6%8D%AE%E6%B5%81%E5%9B%BE"><span class="toc-number">3.0.3.</span> <span class="toc-text">总结性数据流图</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E5%88%86%E6%9E%90"><span class="toc-number">4.</span> <span class="toc-text">代码分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%87%86%E5%A4%87%EF%BC%88RunPreCopy%EF%BC%89%E2%80%94%E2%80%94%E9%80%90%E6%AE%B5%E5%88%86%E6%9E%90"><span class="toc-number">4.1.</span> <span class="toc-text">数据准备（RunPreCopy）——逐段分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97%E6%80%BB%E6%95%B0%E6%8D%AE%E9%87%8F"><span class="toc-number">4.1.1.</span> <span class="toc-text">计算总数据量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%84%E9%80%A0%E6%9C%AC%E5%9C%B0%E5%86%85%E5%AD%98%E8%A7%86%E5%9B%BE"><span class="toc-number">4.1.2.</span> <span class="toc-text">构造本地内存视图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A4%E6%96%AD%E6%98%AF%E5%90%A6%E4%B8%BA2%E7%9A%84%E5%B9%82%E6%AC%A1"><span class="toc-number">4.1.3.</span> <span class="toc-text">判断是否为2的幂次</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97%E9%82%BB%E5%B1%85rank"><span class="toc-number">4.1.4.</span> <span class="toc-text">计算邻居rank</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A4%E6%96%AD%E9%82%BB%E5%B1%85%E6%98%AF%E5%90%A6%E6%9C%89%E6%95%88"><span class="toc-number">4.1.5.</span> <span class="toc-text">判断邻居是否有效</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E6%94%AF1%EF%BC%9A%E5%A4%A7%E7%BC%96%E5%8F%B7rank%E5%85%88%E5%81%9A%E8%A7%84%E7%BA%A6"><span class="toc-number">4.1.6.</span> <span class="toc-text">分支1：大编号rank先做规约</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E6%94%AF2%EF%BC%9A%E5%B0%8F%E7%BC%96%E5%8F%B7rank%E5%8F%AA%E5%81%9A%E6%8B%B7%E8%B4%9D%E5%92%8C%E5%90%8C%E6%AD%A5"><span class="toc-number">4.1.7.</span> <span class="toc-text">分支2：小编号rank只做拷贝和同步</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E6%9C%AC%E5%9C%B0%E6%8B%B7%E8%B4%9D"><span class="toc-number">4.1.8.</span> <span class="toc-text">第一步：本地拷贝</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E9%80%9A%E7%9F%A5%E9%82%BB%E5%B1%85"><span class="toc-number">4.1.9.</span> <span class="toc-text">第二步：通知邻居</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E7%AD%89%E5%BE%85%E9%82%BB%E5%B1%85%E6%95%B0%E6%8D%AE%E5%86%99%E5%A5%BD"><span class="toc-number">4.1.10.</span> <span class="toc-text">第三步：等待邻居数据写好</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E5%86%8D%E6%AC%A1%E6%9C%AC%E5%9C%B0%E6%8B%B7%E8%B4%9D"><span class="toc-number">4.1.11.</span> <span class="toc-text">第四步：再次本地拷贝</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E6%94%AF3%EF%BC%9A%E6%B2%A1%E6%9C%89%E6%9C%89%E6%95%88%E9%82%BB%E5%B1%85%EF%BC%8C%E5%8F%AA%E5%81%9A%E6%9C%AC%E5%9C%B0%E6%8B%B7%E8%B4%9D"><span class="toc-number">4.1.12.</span> <span class="toc-text">分支3：没有有效邻居，只做本地拷贝</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AC%A1%E8%A7%84%E7%BA%A6%EF%BC%88RunAllReduceHDOptim%EF%BC%8Cstep-1%EF%BC%89"><span class="toc-number">4.2.</span> <span class="toc-text">第一次规约（RunAllReduceHDOptim，step&#x3D;1）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E4%BB%A3%E7%A0%81%E4%BD%8D%E7%BD%AE"><span class="toc-number">4.2.1.</span> <span class="toc-text">相关代码位置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#RunAllReduceHDOptim-%E5%85%B3%E9%94%AE%E6%B5%81%E7%A8%8B"><span class="toc-number">4.2.2.</span> <span class="toc-text">RunAllReduceHDOptim 关键流程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AC%A1%E8%A7%84%E7%BA%A6%E6%95%B4%E4%BD%93%E6%B5%81%E7%A8%8B"><span class="toc-number">4.2.3.</span> <span class="toc-text">第一次规约整体流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%86%85%E5%AD%98%E5%88%86%E6%AE%B5%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">5.</span> <span class="toc-text">内存分段的作用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AE%B5%E7%9A%84%E6%9D%A5%E6%BA%90"><span class="toc-number">5.0.1.</span> <span class="toc-text">第一段的来源</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AE%B5%E7%9A%84%E7%94%A8%E9%80%94"><span class="toc-number">5.0.2.</span> <span class="toc-text">第一段的用途</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%9C%E4%B8%BA%E5%90%8E%E7%BB%AD%E8%A7%84%E7%BA%A6%E7%9A%84%E2%80%9C%E8%BE%93%E5%85%A5%E6%BA%90%E2%80%9D"><span class="toc-number">5.0.3.</span> <span class="toc-text">作为后续规约的“输入源”</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%AC%E5%9C%B0%E4%B8%8D%E5%86%8D%E7%9B%B4%E6%8E%A5%E7%94%A8"><span class="toc-number">5.0.4.</span> <span class="toc-text">本地不再直接用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%BE%E7%A4%BA"><span class="toc-number">5.0.5.</span> <span class="toc-text">图示</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#stream%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">6.</span> <span class="toc-text">stream的作用</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BBstream%EF%BC%88stream-%EF%BC%89%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">6.1.</span> <span class="toc-text">主stream（stream_）的作用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E6%8E%A7-%E8%B0%83%E5%BA%A6"><span class="toc-number">6.1.1.</span> <span class="toc-text">主控&#x2F;调度</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%AC%E5%9C%B0%E6%93%8D%E4%BD%9C-%E4%B8%B2%E8%A1%8C%E4%BB%BB%E5%8A%A1"><span class="toc-number">6.1.2.</span> <span class="toc-text">本地操作&#x2F;串行任务</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%A1%E5%8F%B7%E5%90%8C%E6%AD%A5%E7%9A%84%E4%B8%BB%E6%8E%A7%E6%96%B9"><span class="toc-number">6.1.3.</span> <span class="toc-text">信号同步的主控方</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%9C%E4%B8%BA%E2%80%9C%E9%BB%98%E8%AE%A4%E6%B5%81%E2%80%9D"><span class="toc-number">6.1.4.</span> <span class="toc-text">作为“默认流”</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E4%B8%BE%E4%BE%8B"><span class="toc-number">6.1.5.</span> <span class="toc-text">代码举例</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AD%90%E6%B5%81"><span class="toc-number">6.2.</span> <span class="toc-text">子流</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%90%E6%B5%81%E7%9A%84%E5%85%B8%E5%9E%8B%E7%94%A8%E6%B3%95%E5%9C%BA%E6%99%AF"><span class="toc-number">6.2.1.</span> <span class="toc-text">子流的典型用法场景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E7%89%87%E6%AE%B5%E4%B8%BE%E4%BE%8B"><span class="toc-number">6.2.2.</span> <span class="toc-text">代码片段举例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BE%8B%E5%AD%90%E8%AF%B4%E6%98%8E%EF%BC%88%E4%BB%A54NPU%E4%B8%BA%E4%BE%8B%EF%BC%89"><span class="toc-number">6.2.3.</span> <span class="toc-text">例子说明（以4NPU为例）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9C%BA%E6%99%AF%EF%BC%9A%E7%AC%AC%E4%BA%8C%E6%AD%A5%E8%A7%84%E7%BA%A6%EF%BC%88step-2%EF%BC%89"><span class="toc-number">6.2.3.1.</span> <span class="toc-text">场景：第二步规约（step&#x3D;2）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%B7%E4%BD%93%E6%93%8D%E4%BD%9C"><span class="toc-number">6.2.3.2.</span> <span class="toc-text">具体操作</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%BF%99%E6%A0%B7%E5%81%9A%E7%9A%84%E5%A5%BD%E5%A4%84"><span class="toc-number">6.2.3.3.</span> <span class="toc-text">这样做的好处</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%BE%E7%A4%BA-1"><span class="toc-number">6.2.4.</span> <span class="toc-text">图示</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BBstream%E5%92%8C%E5%AD%90stream%E7%9A%84%E5%88%86%E5%B7%A5%E6%BE%84%E6%B8%85"><span class="toc-number">6.2.5.</span> <span class="toc-text">主stream和子stream的分工澄清</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E4%B8%BE%E4%BE%8B%EF%BC%88%E6%9B%B4%E5%87%86%E7%A1%AE%E7%9A%84%E5%88%86%E5%B7%A5%EF%BC%89"><span class="toc-number">6.2.5.1.</span> <span class="toc-text">代码举例（更准确的分工）</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%A7%E8%83%BD%E5%9B%B0%E6%83%91%E8%A7%A3%E7%AD%94%EF%BC%9A%E6%9C%AC%E5%9C%B0%E6%B2%A1%E6%8B%B7%E8%B4%9D%E5%AE%8C%EF%BC%8C%E5%AD%90stream%E8%83%BD%E5%90%A6%E5%90%AF%E5%8A%A8%EF%BC%9F"><span class="toc-number">6.2.6.</span> <span class="toc-text">性能困惑解答：本地没拷贝完，子stream能否启动？</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%90%86%E8%AE%BA%E4%B8%8A"><span class="toc-number">6.2.6.1.</span> <span class="toc-text">理论上</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%9E%E9%99%85%E5%AE%9E%E7%8E%B0"><span class="toc-number">6.2.6.2.</span> <span class="toc-text">实际实现</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%80%A7%E8%83%BD%E5%BD%B1%E5%93%8D"><span class="toc-number">6.2.6.3.</span> <span class="toc-text">性能影响</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%BE%E7%A4%BA-2"><span class="toc-number">6.2.7.</span> <span class="toc-text">图示</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">6.2.8.</span> <span class="toc-text">总结</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#signal"><span class="toc-number">7.</span> <span class="toc-text">signal</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%A1%E5%8F%B7%E6%9C%BA%E5%88%B6%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">7.1.</span> <span class="toc-text">信号机制的作用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="toc-number">7.2.</span> <span class="toc-text">相关数据结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B8%E5%9E%8B%E4%BB%A3%E7%A0%81%E7%89%87%E6%AE%B5"><span class="toc-number">7.3.</span> <span class="toc-text">典型代码片段</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BBstream%E9%80%9A%E7%9F%A5%E5%AD%90stream%EF%BC%88Post%E4%BF%A1%E5%8F%B7%EF%BC%89"><span class="toc-number">7.3.1.</span> <span class="toc-text">主stream通知子stream（Post信号）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#meshSignalAux-%E5%92%8C-meshStreams-%E7%9A%84%E4%B8%80%E4%B8%80%E5%AF%B9%E5%BA%94%E5%85%B3%E7%B3%BB"><span class="toc-number">7.4.</span> <span class="toc-text">meshSignalAux_ 和 meshStreams_ 的一一对应关系</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%88%9D%E5%A7%8B%E5%8C%96%E4%B8%8E%E4%BC%A0%E9%80%92"><span class="toc-number">7.4.1.</span> <span class="toc-text">1. 初始化与传递</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%AF%B9%E5%BA%94%E5%85%B3%E7%B3%BB%E7%9A%84%E5%AE%9E%E9%99%85%E6%84%8F%E4%B9%89"><span class="toc-number">7.4.2.</span> <span class="toc-text">2. 对应关系的实际意义</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E4%BB%A3%E7%A0%81%E4%B8%AD%E7%9A%84%E5%85%B8%E5%9E%8B%E7%94%A8%E6%B3%95"><span class="toc-number">7.4.3.</span> <span class="toc-text">3. 代码中的典型用法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E5%88%9D%E5%A7%8B%E5%8C%96%E6%97%B6%E7%9A%84%E4%BF%9D%E8%AF%81"><span class="toc-number">7.4.4.</span> <span class="toc-text">4. 初始化时的保证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-%E5%9B%BE%E7%A4%BA"><span class="toc-number">7.4.5.</span> <span class="toc-text">5. 图示</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93-1"><span class="toc-number">7.5.</span> <span class="toc-text">总结</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%90stream%E7%AD%89%E5%BE%85%E4%B8%BBstream%EF%BC%88Wait%E4%BF%A1%E5%8F%B7%EF%BC%89"><span class="toc-number">7.5.1.</span> <span class="toc-text">子stream等待主stream（Wait信号）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%90stream%E5%AE%8C%E6%88%90%E5%90%8E%E9%80%9A%E7%9F%A5%E4%B8%BBstream%EF%BC%88Post%E4%BF%A1%E5%8F%B7%EF%BC%89"><span class="toc-number">7.5.2.</span> <span class="toc-text">子stream完成后通知主stream（Post信号）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BBstream%E7%AD%89%E5%BE%85%E6%89%80%E6%9C%89%E5%AD%90stream%E5%AE%8C%E6%88%90%EF%BC%88Wait%E4%BF%A1%E5%8F%B7%EF%BC%89"><span class="toc-number">7.5.3.</span> <span class="toc-text">主stream等待所有子stream完成（Wait信号）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E4%B8%AD%E4%BF%A1%E5%8F%B7%E6%9C%BA%E5%88%B6%E7%9A%84%E5%AE%9E%E9%99%85%E7%94%A8%E6%B3%95%EF%BC%88%E4%BB%A5-MainRecordSub-%E5%92%8C-SubWaitMain-%E4%B8%BA%E4%BE%8B%EF%BC%89"><span class="toc-number">7.5.4.</span> <span class="toc-text">代码中信号机制的实际用法（以 MainRecordSub 和 SubWaitMain 为例）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%BBstream%E5%8F%91%E4%BF%A1%E5%8F%B7%EF%BC%8C%E5%AD%90stream%E7%AD%89%E5%BE%85"><span class="toc-number">7.5.4.1.</span> <span class="toc-text">主stream发信号，子stream等待</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%94%A8%E6%B3%95%E6%B5%81%E7%A8%8B"><span class="toc-number">7.5.4.2.</span> <span class="toc-text">用法流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%BE%E7%A4%BA%EF%BC%9A%E4%BF%A1%E5%8F%B7%E5%90%8C%E6%AD%A5%E6%B5%81%E7%A8%8B"><span class="toc-number">7.6.</span> <span class="toc-text">图示：信号同步流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#profilerInput-stage-%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">7.7.</span> <span class="toc-text">profilerInput_.stage 的作用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%98%E9%87%8F%E6%9D%A5%E6%BA%90"><span class="toc-number">7.7.1.</span> <span class="toc-text">变量来源</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9C%A8%E4%BF%A1%E5%8F%B7%E6%9C%BA%E5%88%B6%E4%B8%AD%E7%9A%84%E7%94%A8%E9%80%94"><span class="toc-number">7.7.2.</span> <span class="toc-text">在信号机制中的用途</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E7%A4%BA%E4%BE%8B"><span class="toc-number">7.7.3.</span> <span class="toc-text">代码示例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#profiling-%E7%9A%84%E5%85%B8%E5%9E%8B%E7%94%A8%E9%80%94"><span class="toc-number">7.7.4.</span> <span class="toc-text">profiling 的典型用途</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%BE%E7%A4%BA-3"><span class="toc-number">7.7.5.</span> <span class="toc-text">图示</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#profilerInput-stage-%E7%9A%84%E8%87%AA%E5%AE%9A%E4%B9%89%E6%80%A7"><span class="toc-number">7.8.</span> <span class="toc-text">profilerInput_.stage 的自定义性</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%BE%E8%AE%A1%E7%9B%AE%E7%9A%84"><span class="toc-number">7.8.1.</span> <span class="toc-text">设计目的</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E8%87%AA%E5%AE%9A%E4%B9%89"><span class="toc-number">7.8.2.</span> <span class="toc-text">如何自定义</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E4%B8%AD%E7%9A%84%E5%85%B8%E5%9E%8B%E7%94%A8%E6%B3%95"><span class="toc-number">7.8.3.</span> <span class="toc-text">代码中的典型用法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#profiling-%E5%B7%A5%E5%85%B7%E5%A6%82%E4%BD%95%E5%88%A9%E7%94%A8"><span class="toc-number">7.8.4.</span> <span class="toc-text">profiling 工具如何利用</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TxAck-RxAck-%E4%B8%8E-signal-%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">7.9.</span> <span class="toc-text">TxAck&#x2F;RxAck 与 signal 的关系</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%99%E4%B8%A4%E8%A1%8C%E7%9A%84%E6%9C%AC%E8%B4%A8"><span class="toc-number">7.9.1.</span> <span class="toc-text">这两行的本质</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%92%8C-LocalNotify-%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="toc-number">7.9.2.</span> <span class="toc-text">和 LocalNotify 的区别</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%98%AF%E5%90%A6%E5%B1%9E%E4%BA%8E-signal-%E6%9C%BA%E5%88%B6%EF%BC%9F"><span class="toc-number">7.9.3.</span> <span class="toc-text">是否属于 signal 机制？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%BE%E7%A4%BA-4"><span class="toc-number">7.9.4.</span> <span class="toc-text">图示</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%BB%E7%BB%93-2"><span class="toc-number">7.9.5.</span> <span class="toc-text">总结</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TxAck-RxAck-%E7%9A%84%E5%85%B7%E4%BD%93%E6%B5%81%E7%A8%8B"><span class="toc-number">7.10.</span> <span class="toc-text">TxAck&#x2F;RxAck 的具体流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%99%E4%B8%A4%E8%A1%8C%E4%BB%A3%E7%A0%81%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">7.10.1.</span> <span class="toc-text">这两行代码的作用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B8%E5%9E%8B%E6%B5%81%E7%A8%8B%EF%BC%88%E4%BB%A5NPU0%E5%92%8CNPU1%E4%B8%BA%E4%BE%8B%EF%BC%89"><span class="toc-number">7.10.2.</span> <span class="toc-text">典型流程（以NPU0和NPU1为例）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0%EF%BC%88%E7%AE%80%E5%8C%96%E7%90%86%E8%A7%A3%EF%BC%89"><span class="toc-number">7.10.3.</span> <span class="toc-text">底层实现（简化理解）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E6%B5%81%E3%80%81%E5%AD%90%E6%B5%81%E7%9A%84%E5%90%8C%E6%AD%A5%E4%B8%8ENPU%E4%B9%8B%E9%97%B4%E7%9A%84%E5%90%8C%E6%AD%A5"><span class="toc-number">7.10.4.</span> <span class="toc-text">主流、子流的同步与NPU之间的同步</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%A6%82%E5%BF%B5%E5%8C%BA%E5%88%86"><span class="toc-number">7.10.4.1.</span> <span class="toc-text">概念区分</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%B8%E5%9E%8B%E6%B5%81%E7%A8%8B%EF%BC%88%E4%BB%A54NPU%E4%B8%BA%E4%BE%8B%EF%BC%89"><span class="toc-number">7.10.4.2.</span> <span class="toc-text">典型流程（以4NPU为例）</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A41%EF%BC%9A%E4%B8%BB%E6%B5%81%E5%AE%8C%E6%88%90%E6%9C%AC%E5%9C%B0%E6%95%B0%E6%8D%AE%E5%87%86%E5%A4%87"><span class="toc-number">7.10.4.2.1.</span> <span class="toc-text">步骤1：主流完成本地数据准备</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A42%EF%BC%9A%E5%AD%90%E6%B5%81%E7%AD%89%E5%BE%85%E4%B8%BB%E6%B5%81%E4%BF%A1%E5%8F%B7"><span class="toc-number">7.10.4.2.2.</span> <span class="toc-text">步骤2：子流等待主流信号</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A43%EF%BC%9A%E5%AD%90%E6%B5%81%E4%B8%8E%E9%82%BB%E5%B1%85NPU%E5%90%8C%E6%AD%A5%EF%BC%88TxAck-RxAck%EF%BC%89"><span class="toc-number">7.10.4.2.3.</span> <span class="toc-text">步骤3：子流与邻居NPU同步（TxAck&#x2F;RxAck）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A44%EF%BC%9A%E5%AD%90%E6%B5%81%E5%AE%8C%E6%88%90%E5%90%8E%E9%80%9A%E7%9F%A5%E4%B8%BB%E6%B5%81"><span class="toc-number">7.10.4.2.4.</span> <span class="toc-text">步骤4：子流完成后通知主流</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A45%EF%BC%9A%E4%B8%BB%E6%B5%81%E7%AD%89%E5%BE%85%E6%89%80%E6%9C%89%E5%AD%90%E6%B5%81%E5%AE%8C%E6%88%90"><span class="toc-number">7.10.4.2.5.</span> <span class="toc-text">步骤5：主流等待所有子流完成</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9B%BE%E6%96%87%E6%B5%81%E7%A8%8B"><span class="toc-number">7.10.4.3.</span> <span class="toc-text">图文流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E5%90%8C%E6%AD%A5%E7%9A%84%E6%AD%A3%E7%A1%AE%E6%80%A7"><span class="toc-number">7.11.</span> <span class="toc-text">如何保证同步的正确性</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B8%E5%9E%8B%E5%86%99%E6%B3%95"><span class="toc-number">7.11.1.</span> <span class="toc-text">典型写法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%90stream%E7%9A%84%E7%AD%89%E5%BE%85"><span class="toc-number">7.11.2.</span> <span class="toc-text">子stream的等待</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%99%E6%A0%B7%E5%81%9A%E7%9A%84%E5%A5%BD%E5%A4%84-1"><span class="toc-number">7.11.3.</span> <span class="toc-text">这样做的好处</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%BE%E7%A4%BA-5"><span class="toc-number">7.11.4.</span> <span class="toc-text">图示</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%BB%E7%BB%93-3"><span class="toc-number">7.11.5.</span> <span class="toc-text">总结</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#base%E3%80%81%E5%AD%90%E6%B5%81%E3%80%81%E4%BF%A1%E5%8F%B7%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">7.12.</span> <span class="toc-text">base、子流、信号的关系</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#base-%E8%87%B3%E5%B0%91%E4%B8%BA2%EF%BC%8C%E5%AD%90%E6%B5%81%E8%87%B3%E5%B0%91%E4%B8%BA2"><span class="toc-number">7.12.1.</span> <span class="toc-text">base 至少为2，子流至少为2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E6%B5%81%E5%92%8C%E4%BF%A1%E5%8F%B7%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">7.12.2.</span> <span class="toc-text">主流和信号的关系</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BB%91%E5%AE%9A%E5%85%B3%E7%B3%BB"><span class="toc-number">7.12.2.1.</span> <span class="toc-text">绑定关系</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E7%BB%93%E6%9E%84"><span class="toc-number">7.12.2.2.</span> <span class="toc-text">代码结构</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E6%B5%81%E6%9C%AC%E8%BA%AB%E4%B8%8D%E7%9B%B4%E6%8E%A5%E2%80%9C%E7%BB%91%E5%AE%9A%E2%80%9D%E4%BF%A1%E5%8F%B7"><span class="toc-number">7.12.3.</span> <span class="toc-text">主流本身不直接“绑定”信号</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#meshSignalAux-%E5%92%8C-meshSignal-%E7%9A%84%E9%85%8D%E5%AF%B9%E5%85%B3%E7%B3%BB"><span class="toc-number">7.12.4.</span> <span class="toc-text">meshSignalAux_ 和 meshSignal_ 的配对关系</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/posts/7b15d684.html" title="HCCL_stream_siganl_memory原理及使用方法"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png" onerror="this.onerror=null;this.src='/img/4041.png'" alt="HCCL_stream_siganl_memory原理及使用方法"/></a><div class="content"><a class="title" href="/posts/7b15d684.html" title="HCCL_stream_siganl_memory原理及使用方法">HCCL_stream_siganl_memory原理及使用方法</a><time datetime="2026-05-29T06:04:18.000Z" title="发表于 2026-05-29 14:04:18">2026-05-29</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/33a96c5a.html" title="GitHub贡献图异常增长排查与修复记录"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/lHKF/1920X1080/cover01.jpg" onerror="this.onerror=null;this.src='/img/4041.png'" alt="GitHub贡献图异常增长排查与修复记录"/></a><div class="content"><a class="title" href="/posts/33a96c5a.html" title="GitHub贡献图异常增长排查与修复记录">GitHub贡献图异常增长排查与修复记录</a><time datetime="2026-05-11T14:57:40.000Z" title="发表于 2026-05-11 22:57:40">2026-05-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/c8146ad3.html" title="PE250×400 复摆颚式破碎机 SolidWorks 简化运动装配体建模说明书"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/SGAx/3000X2249/cover03.jpg" onerror="this.onerror=null;this.src='/img/4041.png'" alt="PE250×400 复摆颚式破碎机 SolidWorks 简化运动装配体建模说明书"/></a><div class="content"><a class="title" href="/posts/c8146ad3.html" title="PE250×400 复摆颚式破碎机 SolidWorks 简化运动装配体建模说明书">PE250×400 复摆颚式破碎机 SolidWorks 简化运动装配体建模说明书</a><time datetime="2026-05-08T13:08:13.000Z" title="发表于 2026-05-08 21:08:13">2026-05-08</time></div></div></div></div></div></div></main><footer id="footer" style="background: transparent;"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Mango</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div><div class="footer_custom_text"><p><a style="margin-inline:5px" target="_blank" href="https://github.com/"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&logo=GitHub" title="本站项目由Github托管"></a><a style="margin-inline:5px" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&logo=Claris" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可"></a></p></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button><button id="go-down" type="button" title="直达底部" onclick="btf.scrollToDest(document.body.scrollHeight, 500)"><i class="fas fa-arrow-down"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.iife.min.js"></script><div class="js-pjax"></div><script async src="/js/holiday-popup.js" data-pjax></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      true
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div><!-- hexo injector body_end start --> <script data-pjax>if(document.getElementById('recent-posts') && (location.pathname ==='/'|| '/' ==='all')){
+    var parent = document.getElementById('recent-posts');
+    var child = '<div class="recent-post-item" style="width:100%;height: auto"><div id="catalog_magnet"><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/教程/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🏫 Mango 教程集合 (7)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/学习笔记/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">📖 Mango 学习笔记 (4)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/算法/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🧠 Mango 算法笔记 (2)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/计算机网络/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">💻 计算机网络 (5)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/梦啥说啥/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">💡 梦啥说啥 (6)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/音乐/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🎸 Mango 音乐小屋 (2)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><a class="magnet_link_more"  href="https://superbigmango.top/categories" style="flex:1;text-align: center;margin-bottom: 10px;">查看更多...</a></div></div>';
+    console.log('已挂载magnet')
+    parent.insertAdjacentHTML("afterbegin",child)}
+     </script><style>#catalog_magnet{flex-wrap: wrap;display: flex;width:100%;justify-content:space-between;padding: 10px 10px 0 10px;align-content: flex-start;}.magnet_item{flex-basis: calc(33.333333333333336% - 5px);background: #f2f2f2;margin-bottom: 10px;border-radius: 8px;transition: all 0.2s ease-in-out;}.magnet_item:hover{background: #792090}.magnet_link_more{color:#555}.magnet_link{color:black}.magnet_link:hover{color:white}@media screen and (max-width: 600px) {.magnet_item {flex-basis: 100%;}}.magnet_link_context{display:flex;padding: 10px;font-size:16px;transition: all 0.2s ease-in-out;}.magnet_link_context:hover{padding: 10px 20px;}</style>
+    <style></style><div class="js-pjax"><script async="async">var arr = document.getElementsByClassName('recent-post-item');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeInUp');
+    arr[i].setAttribute('data-wow-duration', '600ms');
+    arr[i].setAttribute('data-wow-delay', '50ms');
+    arr[i].setAttribute('data-wow-offset', '50');
+    arr[i].setAttribute('data-wow-iteration', '1');
+  }</script><script async="async">var arr = document.getElementsByClassName('aside-content');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeInUp');
+    arr[i].setAttribute('data-wow-duration', '450ms');
+    arr[i].setAttribute('data-wow-delay', '50ms');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script><script async="async">var arr = document.getElementsByClassName('container post-content');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeIn');
+    arr[i].setAttribute('data-wow-duration', '1200ms');
+    arr[i].setAttribute('data-wow-delay', '');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script></div><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow.min.js"></script><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow_init.js"></script><!-- hexo injector body_end end --></body></html>
