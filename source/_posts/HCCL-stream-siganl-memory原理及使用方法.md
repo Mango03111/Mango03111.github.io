@@ -1,5 +1,5 @@
 ---
-title: HCCL_stream_siganl_memory原理及使用方法
+title: HCCL_stream_signal_memory原理及使用方法
 Author: Mango
 top_img: transparent
 tags:
@@ -76,7 +76,7 @@ cover:
 
 #### 步骤0：数据准备
 
-```mermaid
+{% mermaid %}
 sequenceDiagram
     participant NPU0
     participant NPU1
@@ -86,13 +86,13 @@ sequenceDiagram
     NPU1->>NPU1: 拷贝B到outputMem_
     NPU2->>NPU2: 拷贝C到outputMem_
     NPU3->>NPU3: 拷贝D到outputMem_
-```
+{% endmermaid %}
 
 ---
 
 #### 步骤1：第一次规约（step=1, 邻居=rank^1）
 
-```mermaid
+{% mermaid %}
 sequenceDiagram
     participant NPU0
     participant NPU1
@@ -106,13 +106,13 @@ sequenceDiagram
     NPU3->>NPU2: 发送D
     NPU2->>NPU2: 规约(C,D)→CD
     NPU3->>NPU3: 规约(D,C)→CD
-```
+{% endmermaid %}
 
 ---
 
 #### 步骤2：第二次规约（step=2, 邻居=rank^2）
 
-```mermaid
+{% mermaid %}
 sequenceDiagram
     participant NPU0
     participant NPU2
@@ -126,13 +126,13 @@ sequenceDiagram
     NPU3->>NPU1: 发送CD
     NPU1->>NPU1: 规约(AB,CD)→ABCD
     NPU3->>NPU3: 规约(CD,AB)→ABCD
-```
+{% endmermaid %}
 
 ---
 
 #### 步骤3：结果输出
 
-```mermaid
+{% mermaid %}
 sequenceDiagram
     participant NPU0
     participant NPU1
@@ -142,13 +142,13 @@ sequenceDiagram
     NPU1->>NPU1: 写ABCD到userMemOut
     NPU2->>NPU2: 写ABCD到userMemOut
     NPU3->>NPU3: 写ABCD到userMemOut
-```
+{% endmermaid %}
 
 ---
 
 ### 总结性数据流图
 
-```mermaid
+{% mermaid %}
 graph TD
     A["NPU0:A"] --> AB1["规约1:AB"]
     B["NPU1:B"] --> AB1
@@ -160,7 +160,7 @@ graph TD
     ABCD2 --> O1["NPU1:ABCD"]
     ABCD2 --> O2["NPU2:ABCD"]
     ABCD2 --> O3["NPU3:ABCD"]
-```
+{% endmermaid %}
 
 # 代码分析
 
@@ -579,11 +579,11 @@ CHK_RET(HcclReduceAsync(dispatcher_,
 
 4. 代码与数据流图结合
 
-```mermaid
+{% mermaid %}
 graph TD
     B["NPU1 outputMem_首段 (B)"] -- 规约 --> AB["NPU0 outputMem_第二段 (A+B)"]
     A["NPU0 outputMem_第二段 (A)"] -- 参与规约 --> AB
-```
+{% endmermaid %}
 
 
 
@@ -637,7 +637,7 @@ graph TD
 >
  图示
 >
-> ```mermaid
+> {% mermaid %}
 > flowchart TD
 >     subgraph 第一次规约
 >         A1["outputMem_首段"] -->|src| Reduce1
@@ -649,7 +649,7 @@ graph TD
 >         B2["userMemOut"] -->|dst| Reduce2
 >         Reduce2["HcclReduceAsync: 规约结果写回userMemOut"]
 >     end
-> ```
+> {% endmermaid %}
 >
 > 
 
@@ -681,7 +681,7 @@ graph TD
 
 ### 图示
 
-```mermaid
+{% mermaid %}
 flowchart TD
     subgraph NPU0
         A0["outputMem_第一段:A"]
@@ -693,7 +693,7 @@ flowchart TD
     end
     A0 -- 被NPU1读取 --> B1
     A1 -- 被NPU0读取 --> B0
-```
+{% endmermaid %}
 
 ---
 
@@ -748,7 +748,7 @@ flowchart TD
 
 图示
 
-```mermaid
+{% mermaid %}
 flowchart TD
     主流程["主stream (stream_)"] -->|调度| 步骤1
     主流程 -->|调度| 步骤2
@@ -757,7 +757,7 @@ flowchart TD
     子stream1 -->|完成| 主stream
     子stream2 -->|完成| 主stream
     主stream -->|推进| 步骤2
-```
+{% endmermaid %}
 
 总结
 
@@ -828,7 +828,7 @@ CHK_RET(links[neighNext]->RxAck(aicpu_ ? stream_ : meshStreams_[1]));
 
 ### 图示
 
-```mermaid
+{% mermaid %}
 sequenceDiagram
     participant 主stream
     participant 子stream0
@@ -838,7 +838,7 @@ sequenceDiagram
     子stream0-->>主stream: 完成信号
     子stream1-->>主stream: 完成信号
     主stream->>主stream: 推进下一步
-```
+{% endmermaid %}
 
 ---
 
@@ -900,7 +900,7 @@ CHK_RET(links[rightNeigh]->RxAck(meshStreams_[1]));
 
 ### 图示
 
-```mermaid
+{% mermaid %}
 sequenceDiagram
     participant 主stream
     participant 子stream0
@@ -910,7 +910,7 @@ sequenceDiagram
     主stream->>子stream1: 发信号（拷贝完成）
     子stream0->>子stream0: 与左邻居通信/规约
     子stream1->>子stream1: 与右邻居通信/规约
-```
+{% endmermaid %}
 
 ---
 
@@ -1038,13 +1038,13 @@ for (u32 signalIndex = 0; signalIndex < streamNum; signalIndex++) {
   >
   > ### 5. 图示
   >
-  > ```mermaid
+  > {% mermaid %}
   > flowchart TD
   >     subgraph 子stream与信号一一对应
   >         meshStreams_0["meshStreams_[0] (左方向)"] <--> meshSignalAux_0["meshSignalAux_[0]"]
   >         meshStreams_1["meshStreams_[1] (右方向)"] <--> meshSignalAux_1["meshSignalAux_[1]"]
   >     end
-  > ```
+  > {% endmermaid %}
   >
   > ---
   >
@@ -1144,7 +1144,7 @@ HcclResult AllReduceHDOptim::SubWaitMain(u32 streamNum) {
 
 ## 图示：信号同步流程
 
-```mermaid
+{% mermaid %}
 sequenceDiagram
     participant 主stream
     participant 子stream0
@@ -1159,7 +1159,7 @@ sequenceDiagram
     子stream0->>主stream: Post信号（meshSignal_[0]），通知主stream“我完成了”
     子stream1->>主stream: Post信号（meshSignal_[1]），通知主stream“我完成了”
     主stream->>主stream: Wait信号（meshSignal_[0]、meshSignal_[1]），收到后推进下一步
-```
+{% endmermaid %}
 
 ---
 
@@ -1202,11 +1202,11 @@ CHK_RET(LocalNotify::Post(
 
 ### 图示
 
-```mermaid
+{% mermaid %}
 flowchart TD
     A["LocalNotify::Post(..., stage=step1)"] -->|profiling| B["性能分析工具"]
     C["LocalNotify::Wait(..., stage=step2)"] -->|profiling| B
-```
+{% endmermaid %}
 
 ---
 
@@ -1292,7 +1292,7 @@ flowchart TD
 
 ### 图示
 
-```mermaid
+{% mermaid %}
 flowchart TD
     subgraph NPU0
         S0["主stream"]
@@ -1304,7 +1304,7 @@ flowchart TD
         S1b["子stream"]
     end
     S0 -- TxAck/RxAck --> S0b
-```
+{% endmermaid %}
 
 - **蓝色箭头**：本地信号（LocalNotify）
 - **黑色箭头**：跨NPU同步（TxAck/RxAck）
@@ -1429,7 +1429,7 @@ for (u32 i = 0; i < meshStreams_.size(); i++) {
 
 #### 图文流程
 
-```mermaid
+{% mermaid %}
 sequenceDiagram
     participant 主stream
     participant 子stream0
@@ -1448,7 +1448,7 @@ sequenceDiagram
     子stream0->>主stream: LocalNotify::Post (本地同步)
     子stream1->>主stream: LocalNotify::Post (本地同步)
     主stream->>主stream: LocalNotify::Wait (收到所有子stream完成信号)
-```
+{% endmermaid %}
 
 你的理解非常正确！  
 **本地拷贝和信号同步的顺序**，就是保证数据依赖和并发安全的关键。  
@@ -1492,14 +1492,14 @@ CHK_RET(LocalNotify::Wait(meshStreams_[i], dispatcher_, (*meshSignalAux_)[i], pr
 
 ### 图示
 
-```mermaid
+{% mermaid %}
 sequenceDiagram
     participant 主stream
     participant 子stream
     主stream->>主stream: 本地拷贝
     主stream->>子stream: LocalNotify::Post（拷贝完成后发信号）
     子stream->>子stream: LocalNotify::Wait（收到信号后继续）
-```
+{% endmermaid %}
 
 ---
 
@@ -1559,12 +1559,12 @@ for (u32 i = 0; i < base; i++) {
 
  图示
 
-```mermaid
+{% mermaid %}
 flowchart TD
     主流 -- 信号0 --> 子流0
     主流 -- 信号1 --> 子流1
     %% base=2时
-```
+{% endmermaid %}
 
 ### meshSignalAux_ 和 meshSignal_ 的配对关系
 
@@ -1616,13 +1616,13 @@ for (u32 i = 0; i < base; i++) {
 
 4. 图示
 
-```mermaid
+{% mermaid %}
 flowchart TD
     主流 -- meshSignalAux_[0] --> 子流0
     主流 -- meshSignalAux_[1] --> 子流1
     子流0 -- meshSignal_[0] --> 主流
     子流1 -- meshSignal_[1] --> 主流
-```
+{% endmermaid %}
 
 ---
 

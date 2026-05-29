@@ -312,3 +312,30 @@ html[data-theme="dark"] #page .tag-cloud-list a::before {
         font-size: 0.95em !important;
     }
 }
+
+/* Mermaid 图表容器美化 */
+.mermaid {
+    margin: 24px 0;
+    padding: 20px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid rgba(139, 0, 187, 0.12);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.78) !important;
+    box-shadow: 0 10px 28px -18px rgba(0, 0, 0, 0.28);
+    text-align: center;
+    opacity: 1;
+}
+
+.mermaid svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+
+html[data-theme="dark"] .mermaid {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(30, 30, 30, 0.72) !important;
+    box-shadow: 0 10px 28px -18px rgba(0, 0, 0, 0.75);
+}

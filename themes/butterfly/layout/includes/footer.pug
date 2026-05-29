@@ -37,3 +37,11 @@ if nav
         a(href='https://github.com/jerryc127/hexo-theme-butterfly')= `Butterfly${ v ? ' ' + v.theme : '' }`
   if theme.footer.custom_text
     .footer_custom_text!= theme.footer.custom_text
+    
+  if theme.mermaid.enable == true
+  script(type='text/javascript', id='maid-script' mermaidoptioins=theme.mermaid.options src='https://unpkg.com/mermaid@'+ theme.mermaid.version + '/dist/mermaid.min.js' + '?v=' + theme.version)
+  script.
+    if (window.mermaid) {
+      var options = JSON.parse(document.getElementById('maid-script').getAttribute('mermaidoptioins'));
+      mermaid.initialize(options);
+    }
