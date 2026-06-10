@@ -7,6 +7,8 @@ orderby: random
 
 - Markdown
 - AI
+- AI Infra
+- Agent
 - Algorithm
 - Blog
 - git

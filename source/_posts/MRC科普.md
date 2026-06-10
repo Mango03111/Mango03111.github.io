@@ -7,6 +7,7 @@ tags:
   - Algorithm
   - Research
   - AI
+  - AI Infra
 categories:
   - 计算机网络
 cover: >-

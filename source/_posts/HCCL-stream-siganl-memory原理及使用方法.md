@@ -7,6 +7,7 @@ tags:
   - Algorithm
   - Code
   - Research
+  - AI Infra
 categories:
   - 计算机网络
 abbrlink: 7b15d684

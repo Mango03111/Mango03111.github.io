@@ -8,6 +8,8 @@ cover: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFB
 abbrlink: df0fd32a
 date: 2026-03-04 16:40:21
 tags:
+ - AI
+ - code
 ---
 
 Docker 是一个用于构建、发布和运行应用程序的容器化平台。它通过容器技术将应用程序及其运行所需的环境（如依赖库、配置文件和系统工具）一起打包成一个独立的运行单元，使应用能够在不同的计算环境中保持一致的运行效果。相比传统虚拟机，Docker 容器更加轻量、启动速度更快、资源占用更少，因此被广泛应用于软件开发、测试、持续集成和云计算部署等场景，帮助开发者实现快速开发、快速部署和环境一致性。 🚀

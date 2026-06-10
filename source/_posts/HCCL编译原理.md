@@ -4,6 +4,7 @@ Author: Mango
 tags:
   - AI
   - Code
+  - AI Infra
 categories:
   - 计算机网络
 abbrlink: "58974538"
