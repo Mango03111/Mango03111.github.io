@@ -438,6 +438,15 @@ sudo ip netns exec ns101 ibdev2netdev
 sudo ip netns exec ns102 ibdev2netdev
 sudo ip netns exec ns103 ibdev2netdev
 sudo ip netns exec ns104 ibdev2netdev
+
+#或者：
+sudo ip netns exec ns101 bash -c 'for dev in /sys/class/infiniband/*; do echo "$(basename "$dev") -> $(ls "$dev/device/net" 2>/dev/null | tr "\n" " ")"; done'
+
+sudo ip netns exec ns102 bash -c 'for dev in /sys/class/infiniband/*; do echo "$(basename "$dev") -> $(ls "$dev/device/net" 2>/dev/null | tr "\n" " ")"; done'
+
+sudo ip netns exec ns103 bash -c 'for dev in /sys/class/infiniband/*; do echo "$(basename "$dev") -> $(ls "$dev/device/net" 2>/dev/null | tr "\n" " ")"; done'
+
+sudo ip netns exec ns104 bash -c 'for dev in /sys/class/infiniband/*; do echo "$(basename "$dev") -> $(ls "$dev/device/net" 2>/dev/null | tr "\n" " ")"; done'
 ```
 
 示例对应关系：
@@ -650,55 +659,56 @@ sudo ip netns exec ns102 ib_send_bw   -d mlx5_3   -i 1   -x 3   10.0.0.101   -p 
 
 ## 常见问题排查
 
-如果 `ping` 通，但 `ib_send_bw` 不通，优先按以下顺序排查。
+### MTU设置
 
-确认 RDMA 设备和网口映射：
+MTU 是 **Maximum Transmission Unit**，中文通常叫 **最大传输单元**。它表示一个网络接口在一次二层链路传输中，能够承载的最大三层数据包大小，单位是字节。
 
-```bash
-sudo ip netns exec ns101 ibdev2netdev
-sudo ip netns exec ns102 ibdev2netdev
+在 100G RoCE/RDMA 打流测试中，MTU 是影响性能的重要因素之一。如果网口仍然使用默认 `1500` MTU，可能导致包率压力较大，RDMA `active_mtu` 也可能偏小，从而影响 `ib_send_bw` 或 `ib_write_bw` 的测试结果。
+
+建议将四个隔离后的物理网口 MTU 设置为 `9000`，也就是开启 Jumbo Frame。
+
+当前四个 namespace 对应关系为：
+
+```text
+ns101 -> ens3f0np0 -> 10.0.0.101
+ns102 -> ens3f1np1 -> 10.0.0.102
+ns103 -> ens6f0np0 -> 10.0.0.103
+ns104 -> ens6f1np1 -> 10.0.0.104
 ```
 
-确认 RDMA 设备状态：
+设置 MTU：
 
 ```bash
-sudo ip netns exec ns101 ibv_devinfo -d mlx5_2 | grep -E 'state|link_layer|active_mtu'
-sudo ip netns exec ns102 ibv_devinfo -d mlx5_3 | grep -E 'state|link_layer|active_mtu'
+sudo ip netns exec ns101 ip link set dev ens3f0np0 mtu 9000
+sudo ip netns exec ns102 ip link set dev ens3f1np1 mtu 9000
+sudo ip netns exec ns103 ip link set dev ens6f0np0 mtu 9000
+sudo ip netns exec ns104 ip link set dev ens6f1np1 mtu 9000
 ```
 
-确认 IP 层连通：
+检查是否生效：
 
 ```bash
-sudo ip netns exec ns101 ping -I 10.0.0.101 10.0.0.102
+sudo ip netns exec ns101 ip -br link show ens3f0np0
+sudo ip netns exec ns102 ip -br link show ens3f1np1
+sudo ip netns exec ns103 ip -br link show ens6f0np0
+sudo ip netns exec ns104 ip -br link show ens6f1np1
 ```
 
-确认 GID index：
+预期可以看到 `mtu 9000`。
+
+如果当前是两根光纤点对点直连，可以使用大包 ping 验证 MTU。MTU 为 9000 时，IPv4 ICMP payload 通常使用 `8972` 测试：
 
 ```bash
-sudo ip netns exec ns101 show_gids
-sudo ip netns exec ns102 show_gids
+sudo ip netns exec ns101 ping -M do -s 8972 -c 3 -I 10.0.0.101 10.0.0.102
 ```
 
-查看 RDMA namespace 模式：
+第二组：
 
 ```bash
-rdma system show
+sudo ip netns exec ns103 ping -M do -s 8972 -c 3 -I 10.0.0.103 10.0.0.104
 ```
 
-查看 RDMA 设备：
-
-```bash
-rdma dev show
-```
-
-如果 namespace 中看不到 RDMA 设备，可以考虑检查 RDMA 设备是否需要显式移动到对应 namespace：
-
-```bash
-sudo rdma dev set mlx5_2 netns ns101
-sudo rdma dev set mlx5_3 netns ns102
-```
-
-这一步不要贸然执行，只有在 namespace 中无法正常看到 RDMA 设备时再考虑。
+如果能够正常返回，说明链路两端的 9000 MTU 基本可用。
 
 ## 后续接交换机后的测试思路
 
