@@ -1,0 +1,658 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Ubuntu24原生环境安装与测试NVBandwidth记录 | SuperBigMango</title><meta name="author" content="Mango"><meta name="copyright" content="Mango"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="NVBandwidth 是 NVIDIA 官方提供的 GPU 带宽测试工具，用于测量 CPU↔GPU、GPU↔GPU、GPU 显存读写、Copy Engine、SM 拷贝内核等路径的实际带宽。NVBandwidth 的测试结果可以帮助分析 vLLM 使用 TP&#x2F;PP 多卡推理时，GPU 间通信是否成为性能瓶颈。 本文档记录在 Ubuntu 24 Desktop&#x2F;Server 环">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ubuntu24原生环境安装与测试NVBandwidth记录">
+<meta property="og:url" content="https://superbigmango.top/posts/97a78550.html">
+<meta property="og:site_name" content="SuperBigMango">
+<meta property="og:description" content="NVBandwidth 是 NVIDIA 官方提供的 GPU 带宽测试工具，用于测量 CPU↔GPU、GPU↔GPU、GPU 显存读写、Copy Engine、SM 拷贝内核等路径的实际带宽。NVBandwidth 的测试结果可以帮助分析 vLLM 使用 TP&#x2F;PP 多卡推理时，GPU 间通信是否成为性能瓶颈。 本文档记录在 Ubuntu 24 Desktop&#x2F;Server 环">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png">
+<meta property="article:published_time" content="2026-06-10T13:54:18.000Z">
+<meta property="article:modified_time" content="2026-06-17T14:21:32.493Z">
+<meta property="article:author" content="Mango">
+<meta property="article:tag" content="Code">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="AI Infra">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Ubuntu24原生环境安装与测试NVBandwidth记录",
+  "url": "https://superbigmango.top/posts/97a78550.html",
+  "image": "https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png",
+  "datePublished": "2026-06-10T13:54:18.000Z",
+  "dateModified": "2026-06-17T14:21:32.493Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Mango",
+      "url": "https://github.com/Mango03111"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://superbigmango.top/posts/97a78550.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)')
+          const mediaQueryLight = window.matchMedia('(prefers-color-scheme: light)')
+
+          if (theme === undefined) {
+            if (mediaQueryLight.matches) activateLightMode()
+            else if (mediaQueryDark.matches) activateDarkMode()
+            else {
+              const hour = new Date().getHours()
+              const isNight = hour <= 6 || hour >= 18
+              isNight ? activateDarkMode() : activateLightMode()
+            }
+            mediaQueryDark.addEventListener('change', () => {
+              if (saveToLocal.get('theme') === undefined) {
+                e.matches ? activateDarkMode() : activateLightMode()
+              }
+            })
+          } else {
+            theme === 'light' ? activateLightMode() : activateDarkMode()
+          }
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":800,"highlightFullpage":true,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: true,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: true
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Ubuntu24原生环境安装与测试NVBandwidth记录',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end start --><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/animate.min.css" media="print" onload="this.media='screen'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/background_01.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/67-meme-67.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">30</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background: transparent;"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">SuperBigMango</span></a><a class="nav-page-title" href="/"><span class="site-name">Ubuntu24原生环境安装与测试NVBandwidth记录</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Ubuntu24原生环境安装与测试NVBandwidth记录</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-06-10T13:54:18.000Z" title="发表于 2026-06-10 21:54:18">2026-06-10</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-06-17T14:21:32.493Z" title="更新于 2026-06-17 22:21:32">2026-06-17</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%95%99%E7%A8%8B/">教程</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>10分钟</span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>NVBandwidth 是 NVIDIA 官方提供的 GPU 带宽测试工具，用于测量 <strong>CPU↔GPU、GPU↔GPU、GPU 显存读写、Copy Engine、SM 拷贝内核</strong>等路径的实际带宽。NVBandwidth 的测试结果可以帮助分析 vLLM 使用 TP&#x2F;PP 多卡推理时，GPU 间通信是否成为性能瓶颈。</p>
+<p>本文档记录在 <strong>Ubuntu 24 Desktop&#x2F;Server 环境</strong>下，针对 <strong>4 张 NVIDIA RTX 4090</strong>，使用 <strong>原生环境</strong>安装 CUDA Toolkit 13.2、编译并测试 NVIDIA NVBandwidth 的完整流程。</p>
+<p>本文档不使用 Docker 进行测试，适用于希望在宿主机上直接运行 <code>nvbandwidth</code> 的场景。</p>
+<hr>
+<h2 id="环境说明"><a href="#环境说明" class="headerlink" title="环境说明"></a>环境说明</h2><p>当前测试环境：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>操作系统</td>
+<td>Ubuntu 24</td>
+</tr>
+<tr>
+<td>GPU</td>
+<td>4 × NVIDIA GeForce RTX 4090</td>
+</tr>
+<tr>
+<td>NVIDIA 驱动版本</td>
+<td>595.71.05</td>
+</tr>
+<tr>
+<td>CUDA Toolkit 目标版本</td>
+<td>CUDA Toolkit 13.2</td>
+</tr>
+<tr>
+<td>测试工具</td>
+<td>NVIDIA NVBandwidth</td>
+</tr>
+<tr>
+<td>测试方式</td>
+<td>宿主机原生编译与运行，不使用 Docker</td>
+</tr>
+</tbody></table>
+<p>说明：</p>
+<ul>
+<li>当前驱动版本 <code>595.71.05</code> 已经足够新，可以配合 CUDA Toolkit 13.x 使用。</li>
+<li>本流程只安装 <code>cuda-toolkit-13-2</code>，不安装 <code>cuda</code> 或 <code>cuda-13-2</code> 这类可能牵涉驱动变更的完整 CUDA meta package。</li>
+<li>RTX 4090 属于 Ada Lovelace 架构，CUDA 架构号为 <code>sm_89</code>，编译时建议显式指定 <code>CMAKE_CUDA_ARCHITECTURES=89</code>。</li>
+<li>RTX 4090 没有 NVLink，因此 NVBandwidth 的 GPU-GPU 测试主要反映 PCIe&#x2F;P2P 路径带宽，而不是 NVLink 带宽。</li>
+</ul>
+<hr>
+<h2 id="测试前准备"><a href="#测试前准备" class="headerlink" title="测试前准备"></a>测试前准备</h2><p>如果当前正在运行 vLLM 或其他占用显存的程序，建议先停止，否则 NVBandwidth 可能因为显存不足导致测试失败或结果不稳定。</p>
+<p>如果 vLLM 是通过 Docker 容器启动的，可以执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> docker stop qwen36-vllm</span><br></pre></td></tr></table></figure>
+
+<p>查看当前显存占用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nvidia-smi</span><br></pre></td></tr></table></figure>
+
+<p>确认 4 张 RTX 4090 都能正常识别，并且没有明显的大显存占用进程。</p>
+<hr>
+<h2 id="安装基础编译依赖"><a href="#安装基础编译依赖" class="headerlink" title="安装基础编译依赖"></a>安装基础编译依赖</h2><p>先安装编译 NVBandwidth 所需的基础工具：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt update</span><br><span class="line"></span><br><span class="line"><span class="built_in">sudo</span> apt install -y \</span><br><span class="line">  build-essential \</span><br><span class="line">  gcc \</span><br><span class="line">  g++ \</span><br><span class="line">  make \</span><br><span class="line">  cmake \</span><br><span class="line">  git \</span><br><span class="line">  pkg-config \</span><br><span class="line">  libboost-program-options-dev</span><br></pre></td></tr></table></figure>
+
+<p>检查 CMake 版本：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cmake --version</span><br></pre></td></tr></table></figure>
+
+<p>Ubuntu 24 自带的 CMake 一般可以满足 NVBandwidth 编译需求。</p>
+<hr>
+<h2 id="添加-NVIDIA-CUDA-官方-APT-源"><a href="#添加-NVIDIA-CUDA-官方-APT-源" class="headerlink" title="添加 NVIDIA CUDA 官方 APT 源"></a>添加 NVIDIA CUDA 官方 APT 源</h2><p>Ubuntu 24.04 对应的 NVIDIA CUDA 仓库为 <code>ubuntu2404</code>。</p>
+<p>进入临时目录：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /tmp</span><br></pre></td></tr></table></figure>
+
+<p>下载并安装 CUDA keyring：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb</span><br><span class="line"></span><br><span class="line"><span class="built_in">sudo</span> dpkg -i cuda-keyring_1.1-1_all.deb</span><br></pre></td></tr></table></figure>
+
+<p>更新软件源：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt update</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="安装-CUDA-Toolkit-13-2"><a href="#安装-CUDA-Toolkit-13-2" class="headerlink" title="安装 CUDA Toolkit 13.2"></a>安装 CUDA Toolkit 13.2</h2><p>先确认 <code>cuda-toolkit-13-2</code> 是否可用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-cache policy cuda-toolkit-13-2</span><br></pre></td></tr></table></figure>
+
+<p>如果输出中存在 <code>Candidate</code> 版本，说明可以安装。</p>
+<p>建议先进行模拟安装，确认不会替换驱动：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt install -s cuda-toolkit-13-2</span><br></pre></td></tr></table></figure>
+
+<p>重点检查模拟输出里是否出现类似下面的驱动相关包：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nvidia-driver</span><br><span class="line">cuda-drivers</span><br></pre></td></tr></table></figure>
+
+<p>如果没有出现驱动替换或驱动安装行为，可以继续安装 Toolkit：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt install -y cuda-toolkit-13-2</span><br></pre></td></tr></table></figure>
+
+<p>注意，不建议执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt install cuda</span><br></pre></td></tr></table></figure>
+
+<p>也不建议执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt install cuda-13-2</span><br></pre></td></tr></table></figure>
+
+<p>本流程只需要安装：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt install cuda-toolkit-13-2</span><br></pre></td></tr></table></figure>
+
+<p>这样主要安装 CUDA 开发工具链，包括 <code>nvcc</code>，避免不必要地改动当前 NVIDIA 驱动环境。</p>
+<hr>
+<h2 id="配置-CUDA-环境变量"><a href="#配置-CUDA-环境变量" class="headerlink" title="配置 CUDA 环境变量"></a>配置 CUDA 环境变量</h2><p>CUDA 13.2 安装完成后，一般位于：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/local/cuda-13.2</span><br></pre></td></tr></table></figure>
+
+<p>检查 CUDA 安装目录：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> /usr/local | grep cuda</span><br></pre></td></tr></table></figure>
+
+<p>临时配置当前终端环境：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> CUDA_HOME=/usr/local/cuda-13.2</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$CUDA_HOME</span>/bin:<span class="variable">$PATH</span></span><br><span class="line"><span class="built_in">export</span> LD_LIBRARY_PATH=<span class="variable">$CUDA_HOME</span>/lib64:<span class="variable">$LD_LIBRARY_PATH</span></span><br></pre></td></tr></table></figure>
+
+<p>写入 <code>~/.bashrc</code>，使其长期生效：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;export CUDA_HOME=/usr/local/cuda-13.2&#x27;</span> &gt;&gt; ~/.bashrc</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;export PATH=$CUDA_HOME/bin:$PATH&#x27;</span> &gt;&gt; ~/.bashrc</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH&#x27;</span> &gt;&gt; ~/.bashrc</span><br><span class="line"></span><br><span class="line"><span class="built_in">source</span> ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<p>验证 <code>nvcc</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">which</span> nvcc</span><br><span class="line">nvcc --version</span><br></pre></td></tr></table></figure>
+
+<p>正常情况下，应该能看到 CUDA Compiler 的版本信息。</p>
+<p>再次确认驱动状态：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nvidia-smi</span><br></pre></td></tr></table></figure>
+
+<p>需要确认：</p>
+<ul>
+<li>4 张 RTX 4090 都存在；</li>
+<li>驱动版本仍然是 <code>595.71.05</code>；</li>
+<li>没有异常报错。</li>
+</ul>
+<hr>
+<h2 id="查看-GPU-拓扑"><a href="#查看-GPU-拓扑" class="headerlink" title="查看 GPU 拓扑"></a>查看 GPU 拓扑</h2><p>NVBandwidth 的 GPU-GPU 测试结果需要结合 PCIe 拓扑分析，因此建议先保存拓扑信息。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nvidia-smi topo -m</span><br></pre></td></tr></table></figure>
+
+<p>常见拓扑标记含义：</p>
+<table>
+<thead>
+<tr>
+<th>标记</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PIX</td>
+<td>GPU 间经过同一个 PCIe Switch，路径较近</td>
+</tr>
+<tr>
+<td>PXB</td>
+<td>GPU 间经过多个 PCIe Bridge&#x2F;Switch</td>
+</tr>
+<tr>
+<td>PHB</td>
+<td>GPU 间经过 PCIe Host Bridge</td>
+</tr>
+<tr>
+<td>SYS</td>
+<td>GPU 间跨 CPU Socket，路径较远</td>
+</tr>
+<tr>
+<td>NODE</td>
+<td>GPU 间路径跨 NUMA Node，但不跨 SMP Interconnect</td>
+</tr>
+<tr>
+<td>NV#</td>
+<td>NVLink 链路数量，4090 通常不会出现</td>
+</tr>
+</tbody></table>
+<p>RTX 4090 没有 NVLink，因此 GPU-GPU 带宽主要取决于：</p>
+<ul>
+<li>主板 PCIe 拓扑；</li>
+<li>是否经过同一个 PCIe Switch；</li>
+<li>是否跨 CPU Socket；</li>
+<li>PCIe 版本与链路宽度；</li>
+<li>P2P 是否可用；</li>
+<li>BIOS 中 Above 4G Decoding、Resizable BAR、IOMMU 等配置。</li>
+</ul>
+<hr>
+<h2 id="下载-NVBandwidth-源码"><a href="#下载-NVBandwidth-源码" class="headerlink" title="下载 NVBandwidth 源码"></a>下载 NVBandwidth 源码</h2><p>建议将测试工具放在 <code>~/tools</code> 目录下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p ~/tools</span><br><span class="line"><span class="built_in">cd</span> ~/tools</span><br></pre></td></tr></table></figure>
+
+<p>从 NVIDIA 官方 GitHub 仓库下载：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/NVIDIA/nvbandwidth.git</span><br><span class="line"><span class="built_in">cd</span> nvbandwidth</span><br></pre></td></tr></table></figure>
+
+<p>如果 GitHub 访问较慢，可以使用镜像代理：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://gh-proxy.com/https://github.com/NVIDIA/nvbandwidth.git</span><br><span class="line"><span class="built_in">cd</span> nvbandwidth</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="编译-NVBandwidth"><a href="#编译-NVBandwidth" class="headerlink" title="编译 NVBandwidth"></a>编译 NVBandwidth</h2><p>确认当前目录为 NVBandwidth 源码目录：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">pwd</span></span><br></pre></td></tr></table></figure>
+
+<p>应类似：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/antl/tools/nvbandwidth</span><br></pre></td></tr></table></figure>
+
+<p>编译时指定 RTX 4090 的 CUDA 架构 <code>sm_89</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cmake -S . -B build -DCMAKE_CUDA_ARCHITECTURES=89</span><br><span class="line">cmake --build build -j<span class="string">&quot;<span class="subst">$(nproc)</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>检查二进制文件是否生成：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -lh build/nvbandwidth</span><br></pre></td></tr></table></figure>
+
+<p>如果能看到 <code>build/nvbandwidth</code>，说明编译成功。</p>
+<hr>
+<h2 id="查看-NVBandwidth-帮助与测试项"><a href="#查看-NVBandwidth-帮助与测试项" class="headerlink" title="查看 NVBandwidth 帮助与测试项"></a>查看 NVBandwidth 帮助与测试项</h2><p>查看帮助：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -h</span><br></pre></td></tr></table></figure>
+
+<p>列出所有可用测试项：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -l</span><br></pre></td></tr></table></figure>
+
+<p>可以重点关注包含以下关键词的测试项：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -l | grep host</span><br><span class="line">./build/nvbandwidth -l | grep device_to_device</span><br><span class="line">./build/nvbandwidth -l | grep memcpy</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="运行完整测试"><a href="#运行完整测试" class="headerlink" title="运行完整测试"></a>运行完整测试</h2><p>建议先使用 1024 MiB buffer，迭代 10 次：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -b 1024 -i 10</span><br></pre></td></tr></table></figure>
+
+<p>参数含义：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>-b 1024</code></td>
+<td>每次测试使用 1024 MiB buffer</td>
+</tr>
+<tr>
+<td><code>-i 10</code></td>
+<td>每个测试项迭代 10 次</td>
+</tr>
+</tbody></table>
+<p>如果出现显存不足，可以降低 buffer：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -b 512 -i 10</span><br></pre></td></tr></table></figure>
+
+<p>或者：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -b 256 -i 5</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="单项测试命令"><a href="#单项测试命令" class="headerlink" title="单项测试命令"></a>单项测试命令</h2><p>不同版本 NVBandwidth 的 testcase 名称可能略有差异，建议先使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -l</span><br></pre></td></tr></table></figure>
+
+<p>确认具体 testcase 名称后再运行。</p>
+<h3 id="CPU-到-GPU-带宽"><a href="#CPU-到-GPU-带宽" class="headerlink" title="CPU 到 GPU 带宽"></a>CPU 到 GPU 带宽</h3><p>常见测试项：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -t host_to_device_memcpy_ce -b 1024 -i 10</span><br></pre></td></tr></table></figure>
+
+<p>该测试主要反映：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Host Memory -&gt; GPU Memory</span><br></pre></td></tr></table></figure>
+
+<p>也就是 CPU 到 GPU 的 H2D 拷贝带宽。</p>
+<h3 id="GPU-到-CPU-带宽"><a href="#GPU-到-CPU-带宽" class="headerlink" title="GPU 到 CPU 带宽"></a>GPU 到 CPU 带宽</h3><p>常见测试项：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -t device_to_host_memcpy_ce -b 1024 -i 10</span><br></pre></td></tr></table></figure>
+
+<p>该测试主要反映：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GPU Memory -&gt; Host Memory</span><br></pre></td></tr></table></figure>
+
+<p>也就是 GPU 到 CPU 的 D2H 拷贝带宽。</p>
+<h3 id="GPU-到-GPU-读带宽"><a href="#GPU-到-GPU-读带宽" class="headerlink" title="GPU 到 GPU 读带宽"></a>GPU 到 GPU 读带宽</h3><p>先查看具体名称：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -l | grep device_to_device</span><br></pre></td></tr></table></figure>
+
+<p>常见测试命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -t device_to_device_memcpy_read_ce -b 1024 -i 10</span><br></pre></td></tr></table></figure>
+
+<h3 id="GPU-到-GPU-写带宽"><a href="#GPU-到-GPU-写带宽" class="headerlink" title="GPU 到 GPU 写带宽"></a>GPU 到 GPU 写带宽</h3><p>先查看具体名称：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -l | grep device_to_device</span><br></pre></td></tr></table></figure>
+
+<p>常见测试命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -t device_to_device_memcpy_write_ce -b 1024 -i 10</span><br></pre></td></tr></table></figure>
+
+<p>如果提示 testcase 不存在，以 <code>./build/nvbandwidth -l</code> 输出为准。</p>
+<hr>
+<h2 id="保存测试结果"><a href="#保存测试结果" class="headerlink" title="保存测试结果"></a>保存测试结果</h2><p>建议创建专门目录保存测试结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p ~/nvbandwidth-results</span><br></pre></td></tr></table></figure>
+
+<p>保存完整测试结果为 JSON：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">./build/nvbandwidth -b 1024 -i 10 -j \</span><br><span class="line">  &gt; ~/nvbandwidth-results/nvbandwidth-4x4090-$(<span class="built_in">date</span> +%F-%H%M).json</span><br></pre></td></tr></table></figure>
+
+<p>保存 GPU 拓扑：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nvidia-smi topo -m \</span><br><span class="line">  &gt; ~/nvbandwidth-results/topo-4x4090-$(<span class="built_in">date</span> +%F-%H%M).txt</span><br></pre></td></tr></table></figure>
+
+<p>保存当前驱动和 GPU 状态：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nvidia-smi \</span><br><span class="line">  &gt; ~/nvbandwidth-results/nvidia-smi-4x4090-$(<span class="built_in">date</span> +%F-%H%M).txt</span><br></pre></td></tr></table></figure>
+
+<p>推荐最终至少保留三类文件：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">topo-4x4090-日期时间.txt</span><br><span class="line">nvidia-smi-4x4090-日期时间.txt</span><br><span class="line">nvbandwidth-4x4090-日期时间.json</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="结果解读方法"><a href="#结果解读方法" class="headerlink" title="结果解读方法"></a>结果解读方法</h2><p>NVBandwidth 的输出通常包含矩阵，例如 GPU-GPU 测试可能类似：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GPU(row) &lt;- GPU(column) bandwidth GB/s</span><br><span class="line">        0       1       2       3</span><br><span class="line">0     0.0    xx.x    xx.x    xx.x</span><br><span class="line">1    xx.x     0.0    xx.x    xx.x</span><br><span class="line">2    xx.x    xx.x     0.0    xx.x</span><br><span class="line">3    xx.x    xx.x    xx.x     0.0</span><br></pre></td></tr></table></figure>
+
+<p>解读时需要注意：</p>
+<ul>
+<li>对角线通常不是关注重点，因为 GPU 自身到自身不代表跨 GPU 通信；</li>
+<li>GPU-GPU 带宽要结合 <code>nvidia-smi topo -m</code> 一起看；</li>
+<li><code>SUM</code> 是聚合带宽，不等于单条链路带宽；</li>
+<li>4090 没有 NVLink，因此 GPU-GPU 结果通常是 PCIe 路径带宽；</li>
+<li>如果某些 GPU 对之间带宽明显偏低，可能与跨 CPU Socket、PCIe Switch 拓扑、P2P 不可用有关。</li>
+</ul>
+<p>对于 vLLM 部署而言：</p>
+<ul>
+<li>Tensor Parallel 对 GPU-GPU 通信更敏感；</li>
+<li>Pipeline Parallel 对通信压力相对小一些，但单请求延迟可能更高；</li>
+<li>如果 NVBandwidth 显示 GPU-GPU 带宽较差，PP 可能比 TP 更容易稳定，但吞吐和延迟需要实测；</li>
+<li>如果 GPU 间 P2P 不可用或跨 NUMA 严重，TP&#x3D;4 可能表现较差。</li>
+</ul>
+<hr>
+<h2 id="常见问题处理"><a href="#常见问题处理" class="headerlink" title="常见问题处理"></a>常见问题处理</h2><h3 id="找不到-nvcc"><a href="#找不到-nvcc" class="headerlink" title="找不到 nvcc"></a>找不到 nvcc</h3><p>报错示例：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">No CMAKE_CUDA_COMPILER could be found</span><br></pre></td></tr></table></figure>
+
+<p>检查：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">which</span> nvcc</span><br><span class="line">nvcc --version</span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$CUDA_HOME</span></span><br></pre></td></tr></table></figure>
+
+<p>如果 <code>nvcc</code> 实际存在于 <code>/usr/local/cuda-13.2/bin/nvcc</code>，但系统找不到，执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> CUDA_HOME=/usr/local/cuda-13.2</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$CUDA_HOME</span>/bin:<span class="variable">$PATH</span></span><br><span class="line"><span class="built_in">export</span> LD_LIBRARY_PATH=<span class="variable">$CUDA_HOME</span>/lib64:<span class="variable">$LD_LIBRARY_PATH</span></span><br></pre></td></tr></table></figure>
+
+<p>然后重新编译：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">rm</span> -rf build</span><br><span class="line">cmake -S . -B build -DCMAKE_CUDA_ARCHITECTURES=89</span><br><span class="line">cmake --build build -j<span class="string">&quot;<span class="subst">$(nproc)</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Boost-找不到"><a href="#Boost-找不到" class="headerlink" title="Boost 找不到"></a>Boost 找不到</h3><p>报错示例：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Could NOT find Boost</span><br></pre></td></tr></table></figure>
+
+<p>安装依赖：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt install -y libboost-program-options-dev</span><br></pre></td></tr></table></figure>
+
+<p>然后重新编译：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">rm</span> -rf build</span><br><span class="line">cmake -S . -B build -DCMAKE_CUDA_ARCHITECTURES=89</span><br><span class="line">cmake --build build -j<span class="string">&quot;<span class="subst">$(nproc)</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="CUDA-架构不支持-89"><a href="#CUDA-架构不支持-89" class="headerlink" title="CUDA 架构不支持 89"></a>CUDA 架构不支持 89</h3><p>报错示例：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Unsupported gpu architecture &#x27;compute_89&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>说明 CUDA Toolkit 版本过旧，不支持 RTX 4090 的 <code>sm_89</code>。本流程使用 CUDA Toolkit 13.2，一般不会出现该问题。</p>
+<p>检查：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nvcc --version</span><br></pre></td></tr></table></figure>
+
+<h3 id="GitHub-无法访问"><a href="#GitHub-无法访问" class="headerlink" title="GitHub 无法访问"></a>GitHub 无法访问</h3><p>如果源码下载失败，可以尝试镜像代理：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://gh-proxy.com/https://github.com/NVIDIA/nvbandwidth.git</span><br></pre></td></tr></table></figure>
+
+<p>或者在其他机器下载后拷贝到当前服务器。</p>
+<hr>
+<h2 id="推荐执行命令总览"><a href="#推荐执行命令总览" class="headerlink" title="推荐执行命令总览"></a>推荐执行命令总览</h2><p>如果从零开始，核心命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 停止 vLLM，释放显存</span></span><br><span class="line">docker stop qwen36-vllm</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装基础依赖</span></span><br><span class="line"><span class="built_in">sudo</span> apt update</span><br><span class="line"><span class="built_in">sudo</span> apt install -y \</span><br><span class="line">  build-essential gcc g++ make cmake git pkg-config \</span><br><span class="line">  libboost-program-options-dev</span><br><span class="line"></span><br><span class="line"><span class="comment"># 添加 NVIDIA CUDA APT 源</span></span><br><span class="line"><span class="built_in">cd</span> /tmp</span><br><span class="line">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb</span><br><span class="line"><span class="built_in">sudo</span> dpkg -i cuda-keyring_1.1-1_all.deb</span><br><span class="line"><span class="built_in">sudo</span> apt update</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装 CUDA Toolkit 13.2</span></span><br><span class="line">apt-cache policy cuda-toolkit-13-2</span><br><span class="line"><span class="built_in">sudo</span> apt install -s cuda-toolkit-13-2</span><br><span class="line"><span class="built_in">sudo</span> apt install -y cuda-toolkit-13-2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 配置 CUDA 环境变量</span></span><br><span class="line"><span class="built_in">export</span> CUDA_HOME=/usr/local/cuda-13.2</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$CUDA_HOME</span>/bin:<span class="variable">$PATH</span></span><br><span class="line"><span class="built_in">export</span> LD_LIBRARY_PATH=<span class="variable">$CUDA_HOME</span>/lib64:<span class="variable">$LD_LIBRARY_PATH</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;export CUDA_HOME=/usr/local/cuda-13.2&#x27;</span> &gt;&gt; ~/.bashrc</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;export PATH=$CUDA_HOME/bin:$PATH&#x27;</span> &gt;&gt; ~/.bashrc</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH&#x27;</span> &gt;&gt; ~/.bashrc</span><br><span class="line"><span class="built_in">source</span> ~/.bashrc</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 CUDA 与驱动</span></span><br><span class="line">nvcc --version</span><br><span class="line">nvidia-smi</span><br><span class="line">nvidia-smi topo -m</span><br><span class="line"></span><br><span class="line"><span class="comment"># 下载并编译 NVBandwidth</span></span><br><span class="line"><span class="built_in">mkdir</span> -p ~/tools</span><br><span class="line"><span class="built_in">cd</span> ~/tools</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/NVIDIA/nvbandwidth.git</span><br><span class="line"><span class="built_in">cd</span> nvbandwidth</span><br><span class="line"></span><br><span class="line">cmake -S . -B build -DCMAKE_CUDA_ARCHITECTURES=89</span><br><span class="line">cmake --build build -j<span class="string">&quot;<span class="subst">$(nproc)</span>&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 测试</span></span><br><span class="line">./build/nvbandwidth -l</span><br><span class="line">./build/nvbandwidth -b 1024 -i 10</span><br><span class="line"></span><br><span class="line"><span class="comment"># 保存结果</span></span><br><span class="line"><span class="built_in">mkdir</span> -p ~/nvbandwidth-results</span><br><span class="line">./build/nvbandwidth -b 1024 -i 10 -j \</span><br><span class="line">  &gt; ~/nvbandwidth-results/nvbandwidth-4x4090-$(<span class="built_in">date</span> +%F-%H%M).json</span><br><span class="line">nvidia-smi topo -m \</span><br><span class="line">  &gt; ~/nvbandwidth-results/topo-4x4090-$(<span class="built_in">date</span> +%F-%H%M).txt</span><br><span class="line">nvidia-smi \</span><br><span class="line">  &gt; ~/nvbandwidth-results/nvidia-smi-4x4090-$(<span class="built_in">date</span> +%F-%H%M).txt</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="后续测试结果记录"><a href="#后续测试结果记录" class="headerlink" title="后续测试结果记录"></a>后续测试结果记录</h2><p>后续我会将实际测试结果补充到本节中。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://github.com/Mango03111">Mango</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://superbigmango.top/posts/97a78550.html">https://superbigmango.top/posts/97a78550.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://superbigmango.top" target="_blank">SuperBigMango</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Code/">Code</a><a class="post-meta__tags" href="/tags/AI/">AI</a><a class="post-meta__tags" href="/tags/AI-Infra/">AI Infra</a></div><div class="post-share"><div class="social-share" data-image="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/posts/24f50170.html" title="Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png" onerror="onerror=null;src='/img/4041.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录</div></div><div class="info-2"><div class="info-item-1">本文记录在 Ubuntu 24 Desktop 系统上，使用 Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 大模型的完整流程。测试硬件为 4 张 RTX 4090 24GB，宿主机 NVIDIA 驱动版本为 595.71.05；本安装记录仅在此平台上经过验证，其余平台请按照自身需求调整策略。 本文目标是形成一套可复现的部署教程，因此只保留核心步骤，省略无意义的试错过程。 环境说明本次部署环境如下： 1234567操作系统：Ubuntu 24 Desktop显卡：4 × NVIDIA RTX 4090 24GBNVIDIA 驱动：595.71.05部署方式：Docker + vLLM OpenAI API Server模型：Qwen/Qwen3.6-35B-A3B-FP8模型存放目录：~/model服务端口：8000  由于 4 张 4090 总显存为 96GB，推荐优先使用 FP8 版本模型，即： 1Qwen/Qwen3.6-35B-A3B-FP8  不建议一开始直接部署 BF16 原版，因为 35B BF16 权重和 KV Cache 会带来更大的显...</div></div></div></a><a class="pagination-related" href="/posts/d2cad145.html" title="ib网卡隔离配置记录"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/ewhr/1920X696/cover09.jpg" onerror="onerror=null;src='/img/4041.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">ib网卡隔离配置记录</div></div><div class="info-2"><div class="info-item-1">背景在一台 Ubuntu 24.04 服务器上，机器插入了两张高速网卡，每张网卡提供两个光模块口，因此一共有四个可配置的高速网口。计划为四个网口分别配置如下 IP 地址：    网口 IP 地址 隔离命名空间    ens3f0np0 10.0.0.101/24 ns101   ens3f1np1 10.0.0.102/24 ns102   ens6f0np0 10.0.0.103/24 ns103   ens6f1np1 10.0.0.104/24 ns104   最终目标是将四个光口都接入交换机，并让这些 IP 之间的访问必须经过物理网口出到交换机，再由交换机转发回来，而不是被 Linux 本机网络栈直接在机内转发。 在正式接交换机之前，先用两根光纤做点对点连通性测试： 12ens3f0np0 &lt;----光纤----&gt; ens3f1np1ens6f0np0 &lt;----光纤----&gt; ens6f1np1  也就是： 12ns101 / 10.0.0.101  &lt;----&gt;  ns102 / 10.0.0.102ns103 / 10.0.0.1...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/58974538.html" title="华为昇腾HCCL算法注册与执行机制概述"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/PFyM/2048X1152/dc02.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-17</div><div class="info-item-2">华为昇腾HCCL算法注册与执行机制概述</div></div><div class="info-2"><div class="info-item-1">HCCL（Huawei Collective Communication Library）是华为为昇腾（Ascend）AI 处理器提供的集合通信库，用于分布式深度学习训练中多卡、多机之间的高速数据通信，它实现了 AllReduce、AllGather、Broadcast 等常见集合通信算子，并针对昇腾硬件和高速互联进行了深度优化，作用类似于 NVIDIA GPU 生态中的 NCCL，常用于 MindSpore 及 Ascend 生态下的大规模模型训练。 整体架构核心组件123456789101112src/domain/collective_communication/algorithm/├── pub_inc/│   └── coll_executor_base.h            # 执行器基类定义├── impl/│   ├── operator/│   │   └── custom_all_reduce_operator.cc   # 算子实现│   └── coll_executor/│       ├── registry/│       │   ├── col...</div></div></div></a><a class="pagination-related" href="/posts/7b15d684.html" title="HCCL_stream_signal_memory原理及使用方法"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/SGAx/3000X2249/cover03.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-17</div><div class="info-item-2">HCCL_stream_signal_memory原理及使用方法</div></div><div class="info-2"><div class="info-item-1">核心流程梳理主要流程函数 RunAsync：总调度，分三步 RunPreCopy：准备数据，部分rank与邻居先做一次规约或拷贝 RunAllReduceHDOptim：主规约过程，分多步，每步与不同邻居通信 RunFinalStep：处理非2的幂次时的收尾    关键数据结构 userMemIn：用户输入数据 **outputMem_**：算法内部buffer，存放中间结果 userMemOut：最终输出 links：与其他rank的通信链路 **meshStreams_**：多stream支持  以4个NPU为例（rankSize&#x3D;4, base&#x3D;2, nSteps&#x3D;2） 每个NPU初始有自己的输入数据 目标：所有NPU最终都拿到全局规约（如sum）结果  4个NPU的AllReduce通信过程步骤分解步骤0：数据准备（RunPreCopy） 每个NPU把自己的输入数据拷贝到outputMem_ 某些NPU与邻居先做一次规约或数据交换  步骤1：第一次规约（step&#x3D;1） 每个NPU与“距离为1”的邻居（rank异或1）交换数据并做规约...</div></div></div></a><a class="pagination-related" href="/posts/24f50170.html" title="Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-17</div><div class="info-item-2">Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录</div></div><div class="info-2"><div class="info-item-1">本文记录在 Ubuntu 24 Desktop 系统上，使用 Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 大模型的完整流程。测试硬件为 4 张 RTX 4090 24GB，宿主机 NVIDIA 驱动版本为 595.71.05；本安装记录仅在此平台上经过验证，其余平台请按照自身需求调整策略。 本文目标是形成一套可复现的部署教程，因此只保留核心步骤，省略无意义的试错过程。 环境说明本次部署环境如下： 1234567操作系统：Ubuntu 24 Desktop显卡：4 × NVIDIA RTX 4090 24GBNVIDIA 驱动：595.71.05部署方式：Docker + vLLM OpenAI API Server模型：Qwen/Qwen3.6-35B-A3B-FP8模型存放目录：~/model服务端口：8000  由于 4 张 4090 总显存为 96GB，推荐优先使用 FP8 版本模型，即： 1Qwen/Qwen3.6-35B-A3B-FP8  不建议一开始直接部署 BF16 原版，因为 35B BF16 权重和 KV Cache 会带来更大的显...</div></div></div></a><a class="pagination-related" href="/posts/a9087025.html" title="Ubuntu 24 + Docker + 4*RTX 4090 安装 Megatron-LM 记录"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/fooz/1920X750/cover12.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-17</div><div class="info-item-2">Ubuntu 24 + Docker + 4*RTX 4090 安装 Megatron-LM 记录</div></div><div class="info-2"><div class="info-item-1">环境说明本文记录在一台单机 4 卡 RTX 4090 服务器上，通过 Docker 部署 NVIDIA Megatron-LM，并完成从环境安装、NCCL 通信验证到 GPT 小模型训练测试的完整流程。 本机环境如下： 123456操作系统：Ubuntu 24 DesktopGPU：4 × NVIDIA GeForce RTX 4090NVIDIA Driver：595.71.05容器运行环境：Docker + NVIDIA Container ToolkitMegatron 路线：NVIDIA/Megatron-LM 主线版本基础镜像：nvcr.io/nvidia/pytorch:26.01-py3  Megatron-LM 主要用于大模型训练和并行训练实验，和 vLLM 的定位不同：vLLM 更偏推理部署，Megatron-LM 更偏训练、预训练、继续预训练、模型并行和分布式训练验证。  停止已有占用显存进程如果机器上正在运行的占用显存的服务，需要先停止，释放GPU。 1docker ps  如果看到正在运行的 vLLM 容器，例如 qwen36-vllm，执行： 1dock...</div></div></div></a><a class="pagination-related" href="/posts/fa9ffbc3.html" title="DeepSeek MoE 推理是如何“边算边发”的：从 DeepEP 到 Profile Data 的拆解"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260409/N3qH/1200X675/image.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-05-06</div><div class="info-item-2">DeepSeek MoE 推理是如何“边算边发”的：从 DeepEP 到 Profile Data 的拆解</div></div><div class="info-2"><div class="info-item-1">摘要MoE 推理系统里最难建模的部分，往往不是拓扑本身，而是计算与通信的真实组织方式。同样是 expert parallelism，Prefill 更像高吞吐、大批量、长计算核与长尾通信的重叠问题；Decode 则更像低时延、小步长、高频短通信的尾延迟问题。两者虽然都属于推理阶段，但在时间线上几乎表现为两种不同系统。 本文基于 DeepSeek 开源的 DeepEP、profile-data 中的 PyTorch Profiler 轨迹以及 shallowsim 中的性能分析脚本，重新梳理 DeepSeek-V3 &#x2F; R1 架构家族在 MoE 推理中的关键行为特征。文章重点关注三个问题：  DeepEP 到底解决了什么问题 Prefill 和 Decode 的计算-通信模式为何截然不同 这些真实数据对后续仿真建模意味着什么  如果你关心的是 MoE 推理中的 all-to-all、双 micro-batch 重叠、SM 占用方式，或者希望在仿真器里更接近真实系统行为，这篇文章可以作为一份系统性的背景材料。 引言在做 MoE 推理系统建模时，最难的部分往往不是“网络拓扑怎...</div></div></div></a><a class="pagination-related" href="/posts/2158d0a0.html" title="MOE 学习笔记"><img class="cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/fooz/1920X750/cover12.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-05-06</div><div class="info-item-2">MOE 学习笔记</div></div><div class="info-2"><div class="info-item-1">Mixture of Experts (MoE) 是一种基于多个“专家”子模型（或专家网络）的架构，它通过路由策略（通常是基于输入数据的特征）动态选择一个或多个专家进行计算。 MOE是什么？核心概念：  专家网络（Expert Network）：每个专家网络通常是一个子模型（例如一个神经网络层），它们负责处理不同类型的任务或数据特征。  路由器（Router）：路由器根据输入数据的特征来决定将其路由到哪个专家。通常，路由器会通过对输入的编码进行决策，选择一个或多个最适合的专家。  稀疏激活（Sparse Activation）：不是所有的专家都会同时激活，通常每个样本只激活一部分专家，这样可以大大减少计算量，使得 MoE 可以在不增加计算成本的情况下使用更多的专家。    MOE 的主要优势 计算效率：MoE 允许模型在不显著增加计算开销的情况下增加专家数量。通过稀疏激活，模型只计算必要的部分。 灵活性：MoE 可以灵活地为不同任务选择不同的专家，适应更复杂的任务。   路由原理MoE 模型的路由机制决定了输入数据如何分配给专家。路由的核心目的是通过选择最合适的专家来提高计算效率...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/67-meme-67.gif'" alt="avatar"/></div><div class="author-info-name">Mango</div><div class="author-info-description">给时光以生命，给岁月以文明</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">30</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Mango03111" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:yixuanhao_xidian@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #24292e;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到Big Mango的空间！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E8%AF%B4%E6%98%8E"><span class="toc-number">1.</span> <span class="toc-text">环境说明</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B5%8B%E8%AF%95%E5%89%8D%E5%87%86%E5%A4%87"><span class="toc-number">2.</span> <span class="toc-text">测试前准备</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85%E5%9F%BA%E7%A1%80%E7%BC%96%E8%AF%91%E4%BE%9D%E8%B5%96"><span class="toc-number">3.</span> <span class="toc-text">安装基础编译依赖</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B7%BB%E5%8A%A0-NVIDIA-CUDA-%E5%AE%98%E6%96%B9-APT-%E6%BA%90"><span class="toc-number">4.</span> <span class="toc-text">添加 NVIDIA CUDA 官方 APT 源</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85-CUDA-Toolkit-13-2"><span class="toc-number">5.</span> <span class="toc-text">安装 CUDA Toolkit 13.2</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE-CUDA-%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F"><span class="toc-number">6.</span> <span class="toc-text">配置 CUDA 环境变量</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8B-GPU-%E6%8B%93%E6%89%91"><span class="toc-number">7.</span> <span class="toc-text">查看 GPU 拓扑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%8B%E8%BD%BD-NVBandwidth-%E6%BA%90%E7%A0%81"><span class="toc-number">8.</span> <span class="toc-text">下载 NVBandwidth 源码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%96%E8%AF%91-NVBandwidth"><span class="toc-number">9.</span> <span class="toc-text">编译 NVBandwidth</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9F%A5%E7%9C%8B-NVBandwidth-%E5%B8%AE%E5%8A%A9%E4%B8%8E%E6%B5%8B%E8%AF%95%E9%A1%B9"><span class="toc-number">10.</span> <span class="toc-text">查看 NVBandwidth 帮助与测试项</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%90%E8%A1%8C%E5%AE%8C%E6%95%B4%E6%B5%8B%E8%AF%95"><span class="toc-number">11.</span> <span class="toc-text">运行完整测试</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%95%E9%A1%B9%E6%B5%8B%E8%AF%95%E5%91%BD%E4%BB%A4"><span class="toc-number">12.</span> <span class="toc-text">单项测试命令</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#CPU-%E5%88%B0-GPU-%E5%B8%A6%E5%AE%BD"><span class="toc-number">12.1.</span> <span class="toc-text">CPU 到 GPU 带宽</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#GPU-%E5%88%B0-CPU-%E5%B8%A6%E5%AE%BD"><span class="toc-number">12.2.</span> <span class="toc-text">GPU 到 CPU 带宽</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#GPU-%E5%88%B0-GPU-%E8%AF%BB%E5%B8%A6%E5%AE%BD"><span class="toc-number">12.3.</span> <span class="toc-text">GPU 到 GPU 读带宽</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#GPU-%E5%88%B0-GPU-%E5%86%99%E5%B8%A6%E5%AE%BD"><span class="toc-number">12.4.</span> <span class="toc-text">GPU 到 GPU 写带宽</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BF%9D%E5%AD%98%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C"><span class="toc-number">13.</span> <span class="toc-text">保存测试结果</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E6%9E%9C%E8%A7%A3%E8%AF%BB%E6%96%B9%E6%B3%95"><span class="toc-number">14.</span> <span class="toc-text">结果解读方法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E5%A4%84%E7%90%86"><span class="toc-number">15.</span> <span class="toc-text">常见问题处理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%BE%E4%B8%8D%E5%88%B0-nvcc"><span class="toc-number">15.1.</span> <span class="toc-text">找不到 nvcc</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Boost-%E6%89%BE%E4%B8%8D%E5%88%B0"><span class="toc-number">15.2.</span> <span class="toc-text">Boost 找不到</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CUDA-%E6%9E%B6%E6%9E%84%E4%B8%8D%E6%94%AF%E6%8C%81-89"><span class="toc-number">15.3.</span> <span class="toc-text">CUDA 架构不支持 89</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#GitHub-%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE"><span class="toc-number">15.4.</span> <span class="toc-text">GitHub 无法访问</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8E%A8%E8%8D%90%E6%89%A7%E8%A1%8C%E5%91%BD%E4%BB%A4%E6%80%BB%E8%A7%88"><span class="toc-number">16.</span> <span class="toc-text">推荐执行命令总览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8E%E7%BB%AD%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C%E8%AE%B0%E5%BD%95"><span class="toc-number">17.</span> <span class="toc-text">后续测试结果记录</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/posts/a9087025.html" title="Ubuntu 24 + Docker + 4*RTX 4090 安装 Megatron-LM 记录"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/fooz/1920X750/cover12.jpg" onerror="this.onerror=null;this.src='/img/4041.png'" alt="Ubuntu 24 + Docker + 4*RTX 4090 安装 Megatron-LM 记录"/></a><div class="content"><a class="title" href="/posts/a9087025.html" title="Ubuntu 24 + Docker + 4*RTX 4090 安装 Megatron-LM 记录">Ubuntu 24 + Docker + 4*RTX 4090 安装 Megatron-LM 记录</a><time datetime="2026-06-11T11:50:40.000Z" title="发表于 2026-06-11 19:50:40">2026-06-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/24f50170.html" title="Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png" onerror="this.onerror=null;this.src='/img/4041.png'" alt="Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录"/></a><div class="content"><a class="title" href="/posts/24f50170.html" title="Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录">Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录</a><time datetime="2026-06-10T13:56:56.000Z" title="发表于 2026-06-10 21:56:56">2026-06-10</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/97a78550.html" title="Ubuntu24原生环境安装与测试NVBandwidth记录"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png" onerror="this.onerror=null;this.src='/img/4041.png'" alt="Ubuntu24原生环境安装与测试NVBandwidth记录"/></a><div class="content"><a class="title" href="/posts/97a78550.html" title="Ubuntu24原生环境安装与测试NVBandwidth记录">Ubuntu24原生环境安装与测试NVBandwidth记录</a><time datetime="2026-06-10T13:54:18.000Z" title="发表于 2026-06-10 21:54:18">2026-06-10</time></div></div></div></div></div></div></main><footer id="footer" style="background: transparent;"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Mango</span><span class="framework-info"><span>框架 </span><a href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div><div class="footer_custom_text"><p><a style="margin-inline:5px" target="_blank" href="https://github.com/"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&logo=GitHub" title="本站项目由Github托管"></a><a style="margin-inline:5px" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-lazy-src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&logo=Claris" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可"></a></p></div><script type="text/javascript" id="maid-script" src="https://unpkg.com/mermaid@undefined/dist/mermaid.min.js?v=undefined"></script><script>if (window.mermaid) {
+  var options = JSON.parse(document.getElementById('maid-script').getAttribute('mermaidoptioins'));
+  mermaid.initialize(options);
+}</script></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button><button id="go-down" type="button" title="直达底部" onclick="btf.scrollToDest(document.body.scrollHeight, 500)"><i class="fas fa-arrow-down"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload@19.1.3/dist/lazyload.iife.min.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (false) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async src="/js/holiday-popup.js" data-pjax></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      true
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div><!-- hexo injector body_end start --> <script data-pjax>if(document.getElementById('recent-posts') && (location.pathname ==='/'|| '/' ==='all')){
+    var parent = document.getElementById('recent-posts');
+    var child = '<div class="recent-post-item" style="width:100%;height: auto"><div id="catalog_magnet"><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/教程/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🏫 Mango 教程集合 (11)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/学习笔记/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">📖 Mango 学习笔记 (4)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/算法/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🧠 Mango 算法笔记 (2)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/计算机网络/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">💻 计算机网络 (6)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/梦啥说啥/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">💡 梦啥说啥 (5)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/音乐/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🎸 Mango 音乐小屋 (2)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><a class="magnet_link_more"  href="https://superbigmango.top/categories" style="flex:1;text-align: center;margin-bottom: 10px;">查看更多...</a></div></div>';
+    console.log('已挂载magnet')
+    parent.insertAdjacentHTML("afterbegin",child)}
+     </script><style>#catalog_magnet{flex-wrap: wrap;display: flex;width:100%;justify-content:space-between;padding: 10px 10px 0 10px;align-content: flex-start;}.magnet_item{flex-basis: calc(33.333333333333336% - 5px);background: #f2f2f2;margin-bottom: 10px;border-radius: 8px;transition: all 0.2s ease-in-out;}.magnet_item:hover{background: #792090}.magnet_link_more{color:#555}.magnet_link{color:black}.magnet_link:hover{color:white}@media screen and (max-width: 600px) {.magnet_item {flex-basis: 100%;}}.magnet_link_context{display:flex;padding: 10px;font-size:16px;transition: all 0.2s ease-in-out;}.magnet_link_context:hover{padding: 10px 20px;}</style>
+    <style></style><div class="js-pjax"><script async="async">var arr = document.getElementsByClassName('recent-post-item');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeInUp');
+    arr[i].setAttribute('data-wow-duration', '600ms');
+    arr[i].setAttribute('data-wow-delay', '50ms');
+    arr[i].setAttribute('data-wow-offset', '50');
+    arr[i].setAttribute('data-wow-iteration', '1');
+  }</script><script async="async">var arr = document.getElementsByClassName('aside-content');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeInUp');
+    arr[i].setAttribute('data-wow-duration', '450ms');
+    arr[i].setAttribute('data-wow-delay', '50ms');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script><script async="async">var arr = document.getElementsByClassName('container post-content');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeIn');
+    arr[i].setAttribute('data-wow-duration', '1200ms');
+    arr[i].setAttribute('data-wow-delay', '');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script></div><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow.min.js"></script><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow_init.js"></script><!-- hexo injector body_end end --></body></html>
