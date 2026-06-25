@@ -339,3 +339,90 @@ html[data-theme="dark"] .mermaid {
     background: rgba(30, 30, 30, 0.72) !important;
     box-shadow: 0 10px 28px -18px rgba(0, 0, 0, 0.75);
 }
+
+/* 人生倒计时侧边栏卡片 */
+.card-life-counter .item-content {
+    padding: 10px 14px 12px;
+}
+
+.life-counter {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.life-counter-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 5px 10px;
+    align-items: center;
+}
+
+.life-counter-label {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: var(--font-color);
+    opacity: 0.88;
+}
+
+.life-counter-label span {
+    color: #a78bfa;
+    font-weight: 700;
+}
+
+.life-counter-bar {
+    grid-column: 1 / 2;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(167, 139, 250, 0.18);
+}
+
+.life-counter-bar span {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #e9d5ff 0%, #c084fc 48%, #8b5cf6 100%);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.18);
+    transition: width 0.5s ease;
+}
+
+.life-counter-item:nth-child(1) .life-counter-bar span {
+    background: linear-gradient(90deg, #ddd6fe 0%, #a78bfa 100%);
+}
+
+.life-counter-item:nth-child(2) .life-counter-bar span {
+    background: linear-gradient(90deg, #c4b5fd 0%, #8b5cf6 100%);
+}
+
+.life-counter-item:nth-child(3) .life-counter-bar span {
+    background: linear-gradient(90deg, #d8b4fe 0%, #a855f7 100%);
+}
+
+.life-counter-item:nth-child(4) .life-counter-bar span {
+    background: linear-gradient(90deg, #f3e8ff 0%, #c084fc 100%);
+}
+
+.life-counter-percent {
+    grid-column: 2 / 3;
+    color: rgba(167, 139, 250, 0.92);
+    font-size: 12px;
+    min-width: 42px;
+    text-align: right;
+}
+
+html[data-theme="dark"] .life-counter-label span,
+html[data-theme="dark"] .life-counter-percent {
+    color: #ddd6fe;
+}
+
+html[data-theme="dark"] .life-counter-bar {
+    background: rgba(167, 139, 250, 0.08);
+    border-color: rgba(221, 214, 254, 0.14);
+}
+
+html[data-theme="dark"] .life-counter-bar span {
+    box-shadow: 0 0 12px rgba(196, 181, 253, 0.14);
+}
