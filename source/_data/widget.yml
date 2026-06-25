@@ -1,5 +1,5 @@
 top:
-  - name: 人生倒计时
+  - name: 时光沙漏
     icon: fas fa-hourglass-half
     class_name: card-life-counter
     html: |
