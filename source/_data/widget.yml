@@ -1,0 +1,27 @@
+top:
+  - name: 人生倒计时
+    icon: fas fa-hourglass-half
+    class_name: card-life-counter
+    html: |
+      <div class="life-counter" data-life-counter>
+        <div class="life-counter-item">
+          <div class="life-counter-label">今日已过去 <span data-life-unit="today">0</span> 小时</div>
+          <div class="life-counter-bar"><span data-life-fill="today"></span></div>
+          <div class="life-counter-percent" data-life-percent="today">0%</div>
+        </div>
+        <div class="life-counter-item">
+          <div class="life-counter-label">这周已过去 <span data-life-unit="week">0</span> 天</div>
+          <div class="life-counter-bar"><span data-life-fill="week"></span></div>
+          <div class="life-counter-percent" data-life-percent="week">0%</div>
+        </div>
+        <div class="life-counter-item">
+          <div class="life-counter-label">本月已过去 <span data-life-unit="month">0</span> 天</div>
+          <div class="life-counter-bar"><span data-life-fill="month"></span></div>
+          <div class="life-counter-percent" data-life-percent="month">0%</div>
+        </div>
+        <div class="life-counter-item">
+          <div class="life-counter-label">今年已过去 <span data-life-unit="year">0</span> 月</div>
+          <div class="life-counter-bar"><span data-life-fill="year"></span></div>
+          <div class="life-counter-percent" data-life-percent="year">0%</div>
+        </div>
+      </div>

@@ -1135,6 +1135,7 @@ inject:
   bottom:
   # - <script src="xxxx"></script>
     - <script async src="/js/holiday-popup.js" data-pjax></script>
+    - <script async src="/js/life-counter.js" data-pjax></script>
 # CDN Settings
 # Don't modify the following settings unless you know how they work
 CDN:

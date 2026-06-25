@@ -339,3 +339,91 @@ html[data-theme="dark"] .mermaid {
     background: rgba(30, 30, 30, 0.72) !important;
     box-shadow: 0 10px 28px -18px rgba(0, 0, 0, 0.75);
 }
+
+/* 人生倒计时侧边栏卡片 */
+.card-life-counter .item-content {
+    padding: 10px 8px 12px;
+}
+
+.life-counter {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.life-counter-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px 8px;
+    align-items: center;
+    width: 100%;
+}
+
+.life-counter-label {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: var(--font-color);
+    opacity: 0.88;
+}
+
+.life-counter-label span {
+    color: #8b5cf6;
+    font-weight: 700;
+}
+
+.life-counter-bar {
+    grid-column: 1 / 2;
+    height: 15px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(167, 139, 250, 0.16) 0%, rgba(124, 58, 237, 0.08) 100%);
+    border: 1px solid rgba(167, 139, 250, 0.2);
+}
+
+.life-counter-bar span {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, #f5e9ff 0%, #d8b4fe 50%, #a855f7 100%);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.16);
+    transition: width 0.5s ease;
+}
+
+.life-counter-item:nth-child(1) .life-counter-bar span {
+    background: linear-gradient(180deg, #e9d5ff 0%, #c084fc 52%, #7c3aed 100%);
+}
+
+.life-counter-item:nth-child(2) .life-counter-bar span {
+    background: linear-gradient(180deg, #e9d5ff 0%, #c084fc 52%, #7c3aed 100%);
+}
+
+.life-counter-item:nth-child(3) .life-counter-bar span {
+    background: linear-gradient(180deg, #e9d5ff 0%, #c084fc 52%, #7c3aed 100%);
+}
+
+.life-counter-item:nth-child(4) .life-counter-bar span {
+    background: linear-gradient(180deg, #e9d5ff 0%, #c084fc 52%, #7c3aed 100%);
+}
+
+.life-counter-percent {
+    grid-column: 2 / 3;
+    color: rgba(91, 33, 182, 0.96);
+    font-size: 12px;
+    min-width: 38px;
+    text-align: right;
+}
+
+html[data-theme="dark"] .life-counter-label span,
+html[data-theme="dark"] .life-counter-percent {
+    color: #c4b5fd;
+}
+
+html[data-theme="dark"] .life-counter-bar {
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.18) 0%, rgba(59, 20, 113, 0.1) 100%);
+    border-color: rgba(196, 181, 253, 0.12);
+}
+
+html[data-theme="dark"] .life-counter-bar span {
+    box-shadow: 0 0 10px rgba(196, 181, 253, 0.12);
+}
