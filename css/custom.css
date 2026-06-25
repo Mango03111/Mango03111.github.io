@@ -46,8 +46,8 @@
 
 #body-wrap #pagination .page-number:not(.current):hover,
 #body-wrap #pagination .extend:hover {
-    background: #ff7142d2;
-    border-color: #ff7142d2;
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.94), rgba(124, 58, 237, 0.92));
+    border-color: rgba(167, 139, 250, 0.9);
     color: #fff;
 }
 
@@ -101,11 +101,11 @@ html[data-theme="dark"] #page-header #post {
     transition: 0.5s;
     padding: 15px 20px;
     border-radius: 20px;
-    border: 2px solid #8B00BB;
+    border: 2px solid rgba(167, 139, 250, 0.68);
 }
 
 .category-card-back {
-    background: linear-gradient(to top left, #8B00BB 0%, #030094 100%);
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.92) 0%, rgba(91, 33, 182, 0.92) 100%);
     transform: rotateY(-180deg);
     transition: 0.5s;
 }
@@ -128,7 +128,7 @@ html[data-theme="dark"] #page-header #post {
     font-size: 1.5rem;
     font-weight: bold;
     width: 80%;
-    border-bottom: 4px solid #8B00BB;
+    border-bottom: 4px solid rgba(167, 139, 250, 0.72);
 }
 
 .card-front-amount {
