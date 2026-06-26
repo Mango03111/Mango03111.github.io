@@ -46,8 +46,8 @@
 
 #body-wrap #pagination .page-number:not(.current):hover,
 #body-wrap #pagination .extend:hover {
-    background: #ff7142d2;
-    border-color: #ff7142d2;
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.94), rgba(124, 58, 237, 0.92));
+    border-color: rgba(167, 139, 250, 0.9);
     color: #fff;
 }
 
@@ -101,11 +101,11 @@ html[data-theme="dark"] #page-header #post {
     transition: 0.5s;
     padding: 15px 20px;
     border-radius: 20px;
-    border: 2px solid #8B00BB;
+    border: 2px solid rgba(167, 139, 250, 0.68);
 }
 
 .category-card-back {
-    background: linear-gradient(to top left, #8B00BB 0%, #030094 100%);
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.92) 0%, rgba(91, 33, 182, 0.92) 100%);
     transform: rotateY(-180deg);
     transition: 0.5s;
 }
@@ -128,7 +128,7 @@ html[data-theme="dark"] #page-header #post {
     font-size: 1.5rem;
     font-weight: bold;
     width: 80%;
-    border-bottom: 4px solid #8B00BB;
+    border-bottom: 4px solid rgba(167, 139, 250, 0.72);
 }
 
 .card-front-amount {
@@ -338,4 +338,195 @@ html[data-theme="dark"] .mermaid {
     border-color: rgba(255, 255, 255, 0.1);
     background: rgba(30, 30, 30, 0.72) !important;
     box-shadow: 0 10px 28px -18px rgba(0, 0, 0, 0.75);
+}
+
+/* 人生倒计时侧边栏卡片 */
+.card-life-counter .item-content {
+    padding: 10px 8px 12px;
+}
+
+.life-counter {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.life-counter-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px 8px;
+    align-items: center;
+    width: 100%;
+}
+
+.life-counter-label {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: var(--font-color);
+    opacity: 0.88;
+}
+
+.life-counter-label span {
+    color: #8b5cf6;
+    font-weight: 700;
+}
+
+.life-counter-bar {
+    grid-column: 1 / 2;
+    height: 15px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(167, 139, 250, 0.16) 0%, rgba(124, 58, 237, 0.08) 100%);
+    border: 1px solid rgba(167, 139, 250, 0.2);
+}
+
+.life-counter-bar span {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, #f5e9ff 0%, #d8b4fe 50%, #a855f7 100%);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.16);
+    transition: width 0.5s ease;
+}
+
+.life-counter-item:nth-child(1) .life-counter-bar span {
+    background: linear-gradient(180deg, #e9d5ff 0%, #c084fc 52%, #7c3aed 100%);
+}
+
+.life-counter-item:nth-child(2) .life-counter-bar span {
+    background: linear-gradient(180deg, #e9d5ff 0%, #c084fc 52%, #7c3aed 100%);
+}
+
+.life-counter-item:nth-child(3) .life-counter-bar span {
+    background: linear-gradient(180deg, #e9d5ff 0%, #c084fc 52%, #7c3aed 100%);
+}
+
+.life-counter-item:nth-child(4) .life-counter-bar span {
+    background: linear-gradient(180deg, #e9d5ff 0%, #c084fc 52%, #7c3aed 100%);
+}
+
+.life-counter-percent {
+    grid-column: 2 / 3;
+    color: rgba(91, 33, 182, 0.96);
+    font-size: 12px;
+    min-width: 38px;
+    text-align: right;
+}
+
+html[data-theme="dark"] .life-counter-label span,
+html[data-theme="dark"] .life-counter-percent {
+    color: #c4b5fd;
+}
+
+html[data-theme="dark"] .life-counter-bar {
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.18) 0%, rgba(59, 20, 113, 0.1) 100%);
+    border-color: rgba(196, 181, 253, 0.12);
+}
+
+html[data-theme="dark"] .life-counter-bar span {
+    box-shadow: 0 0 10px rgba(196, 181, 253, 0.12);
+}
+
+/* 自动向下滚动 */
+#rightside #auto-scroll-btn {
+    background: rgba(255, 255, 255, 0.72);
+    color: #7c3aed;
+    box-shadow: 0 8px 16px -8px rgba(138, 138, 138, 0.35);
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+}
+
+#rightside #auto-scroll-btn i {
+    color: currentColor;
+}
+
+#rightside #auto-scroll-btn:hover {
+    transform: translateY(-1px);
+}
+
+#rightside #auto-scroll-btn.active {
+    background: rgba(124, 58, 237, 0.92);
+    color: #f5e9ff;
+}
+
+html[data-theme="dark"] #rightside #auto-scroll-btn {
+    background: rgba(30, 30, 30, 0.7);
+    color: #ddd6fe;
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="dark"] #rightside #auto-scroll-btn.active {
+    background: rgba(91, 33, 182, 0.96);
+    color: #f5e9ff;
+}
+
+#auto-scroll-panel {
+    position: fixed;
+    right: 60px;
+    bottom: 48px;
+    width: 180px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(167, 139, 250, 0.22);
+    box-shadow: 0 12px 28px -16px rgba(91, 33, 182, 0.35);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#auto-scroll-panel.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.auto-scroll-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: rgba(91, 33, 182, 0.96);
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.auto-scroll-close {
+    border: 0;
+    background: transparent;
+    color: rgba(91, 33, 182, 0.88);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.auto-scroll-speed-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+    color: var(--font-color);
+    font-size: 12px;
+}
+
+.auto-scroll-speed-row input[type="range"] {
+    width: 100%;
+    accent-color: #8b5cf6;
+}
+
+.auto-scroll-speed-row strong {
+    min-width: 2.6em;
+    text-align: right;
+}
+
+html[data-theme="dark"] #auto-scroll-panel {
+    background: rgba(30, 30, 30, 0.94);
+    border-color: rgba(196, 181, 253, 0.14);
+}
+
+html[data-theme="dark"] .auto-scroll-panel-head,
+html[data-theme="dark"] .auto-scroll-close {
+    color: #ddd6fe;
 }
