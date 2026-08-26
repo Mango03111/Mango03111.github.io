@@ -1,0 +1,42 @@
+mango-travel:
+  title: Mango游记
+  description: 收藏旅途中遇见的风景、情绪与零散片段。
+  path: /gallery/mango-travel/
+  cover: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/Ksd6/1279X1706/fef029fc9a77df16a632f69422762a78.jpg
+  groups:
+    - title: 2026年五一劳动节
+      description: 五一假期沿途留下的旅行片段。
+      sections:
+        - title: 秦岭国家动物园
+          description: 秦岭国家动物园随拍。
+          photos:
+            - url: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/Ksd6/1279X1706/fef029fc9a77df16a632f69422762a78.jpg
+              alt: 秦岭国家动物园随拍 1
+            - url: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/2ySW/1279X1706/679c06a2fbd518fd1fc8b4c46e6ba5a3.jpg
+              alt: 秦岭国家动物园随拍 2
+        - title: 露营烧烤
+          description: 露营与烧烤的假日片段。
+          photos:
+            - url: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/0Bhs/1706X1279/aa6113f22a1bee304eafaa693bf1e5fb.jpg
+              alt: 露营烧烤随拍 1
+            - url: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/un1O/1706X1279/df220ac4023055ef838bf9b1e0e49927.jpg
+              alt: 露营烧烤随拍 2
+            - url: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/x6CV/1706X1279/4b22aa102b4f1bff76c4cb7a3b4f012b.jpg
+              alt: 露营烧烤随拍 3
+        - title: 后海
+          description: 后海沿途随拍。
+          photos:
+            - url: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/4aZ3/1279X1706/c0b0811b51fa09847ef4c6c9d3e09799.jpg
+              alt: 后海随拍
+    - title: 2026年清明节
+      description: 清明假期的骊山旅行记录。
+      sections:
+        - title: 骊山（骊哈顿）
+          description: 骊山（骊哈顿）随拍。
+          photos:
+            - url: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/odeA/720X770/6ecdbd507651aae51de874ec181b0253.jpg
+              alt: 骊山随拍 1
+            - url: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/wFK7/1080X1920/6884eab295996946f13d5e660b10aab5.jpg
+              alt: 骊山随拍 2
+            - url: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260507/Ae78/1024X1366/6b4e3245e45bfec9a955cf7c1e429de4.jpg
+              alt: 骊山随拍 3

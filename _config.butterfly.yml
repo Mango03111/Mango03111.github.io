@@ -21,6 +21,7 @@ menu:
   首页: / || fas fa-home
   分类: /categories/ || fa fa-archive
   标签: /tags/ || fa fa-tags
+  Mango的相册: /gallery/ || fas fa-images
   友情链接: /link/ || fas fa-link
   关于: /about/ || fas fa-heart
   # Home: / || fas fa-home
@@ -1084,7 +1085,7 @@ instantpage: false
 lazyload:
   enable: true
   # Use browser's native lazyload instead of vanilla-lazyload
-  native: false
+  native: true
   # Specify the field to use lazyload (site or post)
   field: site
   placeholder:
@@ -1137,6 +1138,7 @@ inject:
     - <script async src="/js/holiday-popup.js" data-pjax></script>
     - <script async src="/js/life-counter.js" data-pjax></script>
     - <script async src="/js/auto-scroll.js" data-pjax></script>
+    - <script defer src="/js/album-waterfall.js"></script>
 # CDN Settings
 # Don't modify the following settings unless you know how they work
 CDN:
@@ -1176,7 +1178,7 @@ CDN:
     # docsearch_css:
     # docsearch_js:
     # egjs_infinitegrid:
-     fancybox: true #和medium_zoom二选一
+    # fancybox:
     # fancybox_css:
     # fireworks:
     # fontawesome:
