@@ -1139,6 +1139,7 @@ inject:
     - <script async src="/js/life-counter.js" data-pjax></script>
     - <script async src="/js/auto-scroll.js" data-pjax></script>
     - <script defer src="/js/album-waterfall.js"></script>
+    - <script defer src="/js/home-stars.js"></script>
 # CDN Settings
 # Don't modify the following settings unless you know how they work
 CDN:
