@@ -21,7 +21,7 @@ menu:
   首页: / || fas fa-home
   分类: /categories/ || fa fa-archive
   标签: /tags/ || fa fa-tags
-  Mango的相册: /gallery/ || fas fa-images
+  图库: /gallery/ || fas fa-images
   友情链接: /link/ || fas fa-link
   关于: /about/ || fas fa-heart
   # Home: / || fas fa-home
