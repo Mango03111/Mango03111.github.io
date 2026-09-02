@@ -190,6 +190,10 @@ categories:
     desc: 吃饭的家伙事儿 
     color1: "#9F96B8" 
     color2: "#C8BFD9" 
+  AIInfra: 
+    desc: 训练 & 推理 & Agent 
+    color1: "#9F96B8" 
+    color2: "#C8BFD9" 
   算法: 
     desc: 各类算法思路与代码 
     color1: "#9F96B8" 

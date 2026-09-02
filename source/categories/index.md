@@ -7,6 +7,7 @@ type: "categories"
 - 学习笔记
 - 教程
 - 计算机网络
+- AIInfra
 - 算法
 - 梦啥说啥
 - 音乐
