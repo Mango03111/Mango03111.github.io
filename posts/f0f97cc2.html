@@ -1,0 +1,672 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录 | SuperBigMango</title><meta name="author" content="Mango"><meta name="copyright" content="Mango"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="经过一系列的测试和压测，最终终于测试出一套可以稳定运行且性能不劣化的配置方案。 服务：qwen38-27b-fp8，Docker 镜像 vllm&#x2F;vllm-openai:v0.27.1，4090 * 2张 结论先行当前部署以现有 FP8 启动参数为基准，采用 TP2、完整 262144 上下文、FP8 KV cache、最多 4 个并发请求，并保留图片输入能力。最新实测结果：    配置">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录">
+<meta property="og:url" content="https://superbigmango.top/posts/f0f97cc2.html">
+<meta property="og:site_name" content="SuperBigMango">
+<meta property="og:description" content="经过一系列的测试和压测，最终终于测试出一套可以稳定运行且性能不劣化的配置方案。 服务：qwen38-27b-fp8，Docker 镜像 vllm&#x2F;vllm-openai:v0.27.1，4090 * 2张 结论先行当前部署以现有 FP8 启动参数为基准，采用 TP2、完整 262144 上下文、FP8 KV cache、最多 4 个并发请求，并保留图片输入能力。最新实测结果：    配置">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/kavL/3840X1295/cover08.jpg">
+<meta property="article:published_time" content="2026-09-01T08:47:51.000Z">
+<meta property="article:modified_time" content="2026-09-03T08:16:47.531Z">
+<meta property="article:author" content="Mango">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="AI Infra">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/kavL/3840X1295/cover08.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录",
+  "url": "https://superbigmango.top/posts/f0f97cc2.html",
+  "image": "https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/kavL/3840X1295/cover08.jpg",
+  "datePublished": "2026-09-01T08:47:51.000Z",
+  "dateModified": "2026-09-03T08:16:47.531Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Mango",
+      "url": "https://github.com/Mango03111"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://superbigmango.top/posts/f0f97cc2.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)')
+          const mediaQueryLight = window.matchMedia('(prefers-color-scheme: light)')
+
+          if (theme === undefined) {
+            if (mediaQueryLight.matches) activateLightMode()
+            else if (mediaQueryDark.matches) activateDarkMode()
+            else {
+              const hour = new Date().getHours()
+              const isNight = hour <= 6 || hour >= 18
+              isNight ? activateDarkMode() : activateLightMode()
+            }
+            mediaQueryDark.addEventListener('change', () => {
+              if (saveToLocal.get('theme') === undefined) {
+                e.matches ? activateDarkMode() : activateLightMode()
+              }
+            })
+          } else {
+            theme === 'light' ? activateLightMode() : activateDarkMode()
+          }
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":800,"highlightFullpage":true,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: true
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end start --><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/animate.min.css" media="print" onload="this.media='screen'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/background_01.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/67-meme-67.gif'" alt="avatar"/ loading='lazy'></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">33</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background: transparent;"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">SuperBigMango</span></a><a class="nav-page-title" href="/"><span class="site-name">Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-09-01T08:47:51.000Z" title="发表于 2026-09-01 16:47:51">2026-09-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-09-03T08:16:47.531Z" title="更新于 2026-09-03 16:16:47">2026-09-03</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/AIInfra/">AIInfra</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2.7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>10分钟</span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>经过一系列的测试和压测，最终终于测试出一套可以稳定运行且性能不劣化的配置方案。</p>
+<p>服务：qwen38-27b-fp8，Docker 镜像 vllm&#x2F;vllm-openai:v0.27.1，4090 * 2张</p>
+<h2 id="结论先行"><a href="#结论先行" class="headerlink" title="结论先行"></a>结论先行</h2><p>当前部署以现有 FP8 启动参数为基准，采用 TP2、完整 262144 上下文、FP8 KV cache、最多 4 个并发请求，并保留图片输入能力。最新实测结果：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th align="right">并发</th>
+<th align="right">输入&#x2F;输出 token</th>
+<th align="right">输出吞吐</th>
+<th align="right">TTFT P50</th>
+<th align="right">TPOT P50</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>当前最终配置（MTP3、balanced、0.92、8192、图片上限 786432 像素）</td>
+<td align="right">1</td>
+<td align="right">512&#x2F;2048</td>
+<td align="right"><strong>99.54 tok&#x2F;s</strong></td>
+<td align="right">185.36 ms</td>
+<td align="right">9.96 ms</td>
+<td>稳定，3&#x2F;3 成功</td>
+</tr>
+<tr>
+<td>当前最终配置</td>
+<td align="right">4</td>
+<td align="right">512&#x2F;1024</td>
+<td align="right"><strong>283.04 tok&#x2F;s（aggregate）</strong></td>
+<td align="right">634.87 ms</td>
+<td align="right">11.47 ms</td>
+<td>稳定，8&#x2F;8 成功</td>
+</tr>
+<tr>
+<td>历史 MTP3 interactivity（条件不同）</td>
+<td align="right">8</td>
+<td align="right">512&#x2F;1024</td>
+<td align="right">509.11 tok&#x2F;s（aggregate）</td>
+<td align="right">—</td>
+<td align="right">—</td>
+<td>历史参考</td>
+</tr>
+<tr>
+<td>原始无 MTP 基线（条件不同）</td>
+<td align="right">1</td>
+<td align="right">512&#x2F;2048</td>
+<td align="right">31.27 tok&#x2F;s</td>
+<td align="right">—</td>
+<td align="right">—</td>
+<td>历史参考</td>
+</tr>
+</tbody></table>
+<p>按原始约 31 tok&#x2F;s 参考值计算，当前单请求吞吐提升约 **218%**。历史并发 8 数据采用不同显存利用率、并发数、图片像素上限和 CUDA Graph 参数，只作参考。</p>
+<p><img src="https://imgaly.51shazhu.com/autoupload/fsavu/20260903/HWyj/1478X872/ANTLab%E6%80%A7%E8%83%BD%E5%B1%95%E7%A4%BA.png" alt="1478X872/ANTLab性能展示.png" loading='lazy'></p>
+<h2 id="最终启动参数"><a href="#最终启动参数" class="headerlink" title="最终启动参数"></a>最终启动参数</h2><p>文件：&#x2F;home&#x2F;antl&#x2F;vllm-start-qwen38-27b-fp8-docker-tp2.sh</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">docker run --detach \</span><br><span class="line">  --name vllm-qwen3.8-27b-fp8 \</span><br><span class="line">  --restart unless-stopped \</span><br><span class="line">  --gpus &#x27;&quot;device=0,1&quot;&#x27; \</span><br><span class="line">  --ipc host \</span><br><span class="line">  --publish 8000:8000 \</span><br><span class="line">  --env PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \</span><br><span class="line">  --volume /home/antl/llm_model/Qwen3.8-27B-FP8:/models/Qwen3.8-27B-FP8:ro \</span><br><span class="line">  vllm/vllm-openai:v0.27.1 \</span><br><span class="line">  /models/Qwen3.8-27B-FP8 \</span><br><span class="line">  --host 0.0.0.0 --port 8000 \</span><br><span class="line">  --served-model-name qwen38-27b-fp8 \</span><br><span class="line">  --trust-remote-code --dtype auto \</span><br><span class="line">  --kv-cache-dtype fp8 \</span><br><span class="line">  --max-model-len 262144 \</span><br><span class="line">  --max-num-batched-tokens 8192 \</span><br><span class="line">  --max-num-seqs 4 \</span><br><span class="line">  --gpu-memory-utilization 0.92 \</span><br><span class="line">  --enable-prefix-caching \</span><br><span class="line">  --enable-auto-tool-choice \</span><br><span class="line">  --limit-mm-per-prompt.image 10 \</span><br><span class="line">  --limit-mm-per-prompt.video 0 \</span><br><span class="line">  --mm-processor-kwargs &#x27;&#123;&quot;max_pixels&quot;:786432&#125;&#x27; \</span><br><span class="line">  --tool-call-parser qwen3_xml \</span><br><span class="line">  --reasoning-parser qwen3 \</span><br><span class="line">  --performance-mode balanced \</span><br><span class="line">  --optimization-level 3 \</span><br><span class="line">  --enable-chunked-prefill \</span><br><span class="line">  --max-cudagraph-capture-size 16 \</span><br><span class="line">  --speculative-config &#x27;&#123;&quot;method&quot;:&quot;mtp&quot;,&quot;num_speculative_tokens&quot;:3,&quot;use_local_argmax_reduction&quot;:true&#125;&#x27; \</span><br><span class="line">  --tensor-parallel-size 2</span><br></pre></td></tr></table></figure>
+
+<p>max_pixels&#x3D;786432 仅限制视觉预处理像素量，未降低图片数量接口上限（10）或模型上下文（262144）。expandable_segments 只能缓解显存碎片，不能增加物理显存。</p>
+<h2 id="测试方法与最新结果"><a href="#测试方法与最新结果" class="headerlink" title="测试方法与最新结果"></a>测试方法与最新结果</h2><ul>
+<li>单请求：并发 1，512 输入、2048 输出，预热 2 次，正式 3 次。</li>
+<li>并发 4：512 输入、1024 输出，8 个请求。</li>
+<li>固定采样参数和请求格式；记录吞吐、TTFT、TPOT、MTP 接受率及 GPU 指标。</li>
+</ul>
+<p>单请求：3&#x2F;3 成功，总输出 6144 token，61.72 s；99.54 tok&#x2F;s；TTFT P50 185.36 ms；TPOT P50 9.96 ms；MTP acceptance 99.55%，平均接受长度约 3.99；GPU 平均利用率 75.93%&#x2F;77.16%，峰值显存 23571&#x2F;23571 MiB。</p>
+<p>并发 4：8&#x2F;8 成功，总输出 8192 token，28.94 s；283.04 tok&#x2F;s aggregate；TTFT P50 634.87 ms；TPOT P50 11.47 ms；MTP acceptance 87.72%，平均接受长度约 3.63；GPU 平均利用率 62.48%&#x2F;65.42%，峰值显存 23571&#x2F;23573 MiB。</p>
+<p>启动日志：GPU KV cache size 为 329,510 tokens，262144-token 请求理论容量约 1.26 倍。KV cache 不包含视觉临时张量、CUDA Graph 和运行时工作区。</p>
+<h2 id="历史候选对照"><a href="#历史候选对照" class="headerlink" title="历史候选对照"></a>历史候选对照</h2><table>
+<thead>
+<tr>
+<th>候选</th>
+<th align="right">并发 1</th>
+<th align="right">并发 4</th>
+<th align="right">并发 8</th>
+<th align="right">典型接受长度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无 MTP 原始基线</td>
+<td align="right">31.27</td>
+<td align="right">141.52</td>
+<td align="right">260.82</td>
+<td align="right">—</td>
+</tr>
+<tr>
+<td>O3 + interactivity，无 MTP</td>
+<td align="right">31.30</td>
+<td align="right">141.66</td>
+<td align="right">260.92</td>
+<td align="right">—</td>
+</tr>
+<tr>
+<td>MTP1 + local argmax</td>
+<td align="right">58.26</td>
+<td align="right">203.38</td>
+<td align="right">379.83</td>
+<td align="right">1.96–2.00</td>
+</tr>
+<tr>
+<td>MTP2 + local argmax</td>
+<td align="right">77.90</td>
+<td align="right">228.78</td>
+<td align="right">441.80</td>
+<td align="right">2.84–2.99</td>
+</tr>
+<tr>
+<td>MTP2，无 local argmax</td>
+<td align="right">78.17</td>
+<td align="right">244.00</td>
+<td align="right">441.74</td>
+<td align="right">—</td>
+</tr>
+<tr>
+<td>MTP3 + interactivity</td>
+<td align="right">100.24（中位数）</td>
+<td align="right">231.22</td>
+<td align="right">509.11</td>
+<td align="right">3.67–3.81</td>
+</tr>
+<tr>
+<td>MTP3 + balanced</td>
+<td align="right">98.07</td>
+<td align="right">235.03</td>
+<td align="right">496.31</td>
+<td align="right">—</td>
+</tr>
+</tbody></table>
+<p>历史候选的资源参数不同，不能直接替代当前基准。</p>
+<h2 id="优化方法与效果"><a href="#优化方法与效果" class="headerlink" title="优化方法与效果"></a>优化方法与效果</h2><ol>
+<li>MTP3 一次最多生成 3 个草稿 token；当前平均接受长度接近理论上限，单请求从约 31 tok&#x2F;s 提升到 99.54 tok&#x2F;s。</li>
+<li>local argmax reduction 减少 TP2 大词表采样的跨卡通信，当前接受率和输出均正常。</li>
+<li>optimization-level 3、balanced、chunked prefill 提升编译&#x2F;调度效率并降低长提示瞬时显存峰值。</li>
+<li>CUDA Graph size 16 与当前最多 4 路请求的推测步规模匹配，避免捕获更大图带来的额外显存。</li>
+<li>FP8 KV cache 支撑 262K 上下文；视觉像素上限 786432 降低视觉 token 和临时显存，保留 10 图片接口。</li>
+</ol>
+<h2 id="稳定性与限制"><a href="#稳定性与限制" class="headerlink" title="稳定性与限制"></a>稳定性与限制</h2><p>历史日志曾出现两次 EngineCore OOM：一次申请 320 MiB 时仅剩约 222 MiB，另一次申请 94 MiB 时仅剩约 62 MiB，均发生在显存接近满载的临时分配阶段。当前参数最新文本&#x2F;图片测试未出现 OOM、CUDA、NCCL 或 Xid 错误。</p>
+<p>4090（SM89）上的 FP8 W8A8、FlashLinearAttention 和 TP2 PCIe 通信仍受硬件&#x2F;驱动限制，custom all-reduce 可能回退 NCCL&#x2F;PyNCCL。MTP 收益随 prompt、并发和图片形状变化。nvfp4 KV cache 不适用于当前 4090。</p>
+<h2 id="最终选择"><a href="#最终选择" class="headerlink" title="最终选择"></a>最终选择</h2><ul>
+<li>单请求最快：当前 MTP3 balanced（99.54 tok&#x2F;s）。</li>
+<li>当前并发 4：283.04 tok&#x2F;s aggregate。</li>
+<li>历史并发 8 最高：MTP3 interactivity（509.11 tok&#x2F;s，条件不同）。</li>
+<li>综合推荐：当前脚本；兼顾完整上下文、图片能力、吞吐和稳定性。</li>
+</ul>
+<h2 id="与最初版本的逐参数对比"><a href="#与最初版本的逐参数对比" class="headerlink" title="与最初版本的逐参数对比"></a>与最初版本的逐参数对比</h2><p>本节以最初的 FP8 TP2 配置为基准，解释最终脚本每个变化的目的，以及中间测试如何影响最终选择。</p>
+<h3 id="Docker-与并行参数"><a href="#Docker-与并行参数" class="headerlink" title="Docker 与并行参数"></a>Docker 与并行参数</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>最初版本</th>
+<th>最终版本</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>–gpus</td>
+<td>device&#x3D;0,1</td>
+<td>不变</td>
+<td>固定使用 GPU 0、1，不影响 GPU 2。</td>
+</tr>
+<tr>
+<td>–tensor-parallel-size</td>
+<td>2</td>
+<td>不变</td>
+<td>两张 4090 进行 TP2；TP1 显存压力过大，当前硬件也没有可用的 TP4 条件。</td>
+</tr>
+<tr>
+<td>–ipc host</td>
+<td>有</td>
+<td>不变</td>
+<td>为 Docker 多进程推理提供共享 IPC。</td>
+</tr>
+<tr>
+<td>–restart unless-stopped</td>
+<td>有</td>
+<td>不变</td>
+<td>保留容器异常退出后的自动恢复能力。</td>
+</tr>
+<tr>
+<td><strong>PYTORCH_CUDA_ALLOC_CONF&#x3D;expandable_segments:True</strong></td>
+<td>无</td>
+<td><strong>新增</strong></td>
+<td><strong>缓解 CUDA 显存碎片；</strong>不能增加物理显存，也不能解决真实的显存不足。</td>
+</tr>
+</tbody></table>
+<p>历史日志中曾出现申请 320 MiB 时仅剩约 222 MiB、申请 94 MiB 时仅剩约 62 MiB 的 EngineCore OOM，因此加入 expandable segments 作为显存分配层面的辅助措施。</p>
+<h3 id="模型、KV-Cache-与上下文"><a href="#模型、KV-Cache-与上下文" class="headerlink" title="模型、KV Cache 与上下文"></a>模型、KV Cache 与上下文</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>最初版本</th>
+<th>最终版本</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>–dtype auto</td>
+<td>有</td>
+<td>不变</td>
+<td>根据 FP8 模型权重自动选择计算类型。</td>
+</tr>
+<tr>
+<td>–kv-cache-dtype fp8</td>
+<td>有</td>
+<td>不变</td>
+<td>相比 FP16 KV Cache 显著降低 KV 显存，满足 262K 上下文需求。</td>
+</tr>
+<tr>
+<td>–max-model-len</td>
+<td>262144</td>
+<td>不变</td>
+<td>保留完整 262K 上下文，没有用降低上下文规避 OOM。</td>
+</tr>
+<tr>
+<td>–max-num-batched-tokens</td>
+<td>8192</td>
+<td>不变</td>
+<td>控制一次调度批次的 token 数，不是最长输出长度；增大它会提高批处理能力，也会增加瞬时显存。</td>
+</tr>
+<tr>
+<td>–max-num-seqs</td>
+<td>8</td>
+<td>4</td>
+<td>降低并发时 Attention、MTP、视觉编码器和临时 workspace 的峰值显存。</td>
+</tr>
+<tr>
+<td>–gpu-memory-utilization</td>
+<td>0.96</td>
+<td>0.92</td>
+<td>从 KV 预留中让出更多运行时余量，降低图片请求和临时分配 OOM 风险。</td>
+</tr>
+</tbody></table>
+<p>启动日志中的 GPU KV cache size: 329,510 tokens 表明 KV Cache 理论上可覆盖约 1.26 个 262144-token 请求，但视觉张量、CUDA Graph 和运行时 workspace 不包含在这个数字中。0.92 是当前图片工作负载下的安全折中。</p>
+<h3 id="图片输入参数"><a href="#图片输入参数" class="headerlink" title="图片输入参数"></a>图片输入参数</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>最初版本</th>
+<th>最终版本</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>–limit-mm-per-prompt.image</td>
+<td>10</td>
+<td>10</td>
+<td>保持最多 10 张图片，不通过减少数量解决显存问题。</td>
+</tr>
+<tr>
+<td>–limit-mm-per-prompt.video</td>
+<td>0</td>
+<td>0</td>
+<td>不启用视频帧输入，避免额外视觉显存。</td>
+</tr>
+<tr>
+<td>–mm-processor-kwargs</td>
+<td>无</td>
+<td>max_pixels&#x3D;786432</td>
+<td>限制视觉预处理像素量，减少视觉 token、编码器激活和图片请求的临时显存。</td>
+</tr>
+</tbody></table>
+<p>该像素上限约为 1024×768 级别，适合 OCR 和图文编码场景。它不会修改模型权重、文本上下文上限或图片接口数量；视觉预处理器会在处理阶段对超大图片按该上限处理。</p>
+<h3 id="MTP-推测解码参数"><a href="#MTP-推测解码参数" class="headerlink" title="MTP 推测解码参数"></a>MTP 推测解码参数</h3><p>最初版本没有 speculative-config，最终使用：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;method&quot;</span><span class="punctuation">:</span><span class="string">&quot;mtp&quot;</span><span class="punctuation">,</span><span class="attr">&quot;num_speculative_tokens&quot;</span><span class="punctuation">:</span><span class="number">3</span><span class="punctuation">,</span><span class="attr">&quot;use_local_argmax_reduction&quot;</span><span class="punctuation">:</span><span class="literal"><span class="keyword">true</span></span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>中间测试结果如下：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th align="right">并发 1</th>
+<th align="right">并发 4</th>
+<th align="right">并发 8</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无 MTP 原始基线</td>
+<td align="right">31.27 tok&#x2F;s</td>
+<td align="right">141.52 tok&#x2F;s</td>
+<td align="right">260.82 tok&#x2F;s</td>
+</tr>
+<tr>
+<td>MTP1 + local argmax</td>
+<td align="right">58.26 tok&#x2F;s</td>
+<td align="right">203.38 tok&#x2F;s</td>
+<td align="right">379.83 tok&#x2F;s</td>
+</tr>
+<tr>
+<td>MTP2 + local argmax</td>
+<td align="right">77.90 tok&#x2F;s</td>
+<td align="right">228.78 tok&#x2F;s</td>
+<td align="right">441.80 tok&#x2F;s</td>
+</tr>
+<tr>
+<td>MTP2，无 local argmax</td>
+<td align="right">78.17 tok&#x2F;s</td>
+<td align="right">244.00 tok&#x2F;s</td>
+<td align="right">441.74 tok&#x2F;s</td>
+</tr>
+<tr>
+<td>MTP3 + balanced</td>
+<td align="right">98.07 tok&#x2F;s</td>
+<td align="right">235.03 tok&#x2F;s</td>
+<td align="right">496.31 tok&#x2F;s</td>
+</tr>
+<tr>
+<td>当前 MTP3 配置</td>
+<td align="right"><strong>99.54 tok&#x2F;s</strong></td>
+<td align="right"><strong>283.04 tok&#x2F;s</strong></td>
+<td align="right">未在当前 4 并发配置下测试</td>
+</tr>
+</tbody></table>
+<p>MTP3 单请求的平均接受长度约 3.99，接近理论上限 4；并发 4 时约 3.63，接受率 87.72%。因此最终选择 MTP3，而不是依据理论倍数直接推断吞吐。</p>
+<p>use_local_argmax_reduction 用于减少 TP2 大词表采样时的跨卡通信。MTP2 对照实验显示该参数的收益不固定，但 MTP3 当前接受率和输出均正常，因此保留。</p>
+<h3 id="CUDA-Graph-参数"><a href="#CUDA-Graph-参数" class="headerlink" title="CUDA Graph 参数"></a>CUDA Graph 参数</h3><p>最初版本没有显式设置 max-cudagraph-capture-size，最终设置为 16。</p>
+<p>计算方式为：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">最大并发 4 ×（MTP3 草稿 token 3 + 主模型 token 1）= 16</span><br></pre></td></tr></table></figure>
+
+<p>早期 MTP3 并发 8 候选使用过 32，但最终最大并发已降为 4，继续捕获到 32 会增加额外显存和启动开销。16 更符合当前服务规模。</p>
+<p>CUDA Graph 可以减少 kernel launch 和调度开销，但会占用额外显存。设置过小会降低命中率，设置过大则增加显存压力，因此最终采用 16。</p>
+<h3 id="性能与预填充参数"><a href="#性能与预填充参数" class="headerlink" title="性能与预填充参数"></a>性能与预填充参数</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>最初版本</th>
+<th>最终版本</th>
+<th>测试依据</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>–performance-mode</td>
+<td>无</td>
+<td>balanced</td>
+<td>对比过 interactivity；interactivity 的历史并发 8 吞吐更高，但 balanced 在当前图片和显存约束下更稳妥。</td>
+</tr>
+<tr>
+<td>–optimization-level</td>
+<td>无</td>
+<td>3</td>
+<td>O3 无 MTP 基线约 31.30 tok&#x2F;s，与原始基线约 31.27 tok&#x2F;s 接近，说明主要收益来自 MTP；O3 仍作为运行时基础优化保留。</td>
+</tr>
+<tr>
+<td>–enable-chunked-prefill</td>
+<td>无</td>
+<td>开启</td>
+<td>将长提示分块预填充，降低 262K 上下文和多图片请求的瞬时显存峰值。</td>
+</tr>
+</tbody></table>
+<h3 id="最终取舍"><a href="#最终取舍" class="headerlink" title="最终取舍"></a>最终取舍</h3><p>最终脚本没有使用 enforce-eager，没有降低 max-model-len，没有降低图片数量，也没有关闭图片输入。没有采用 NVFP4 KV Cache，因为当前 RTX 4090&#x2F;SM89 环境不适合作为稳定方案。</p>
+<p>最终配置相较原始约 31 tok&#x2F;s，当前单请求实测 99.54 tok&#x2F;s，提升约 218%；并发 4 实测 283.04 tok&#x2F;s aggregate。该方案同时保留完整 262K 上下文、10 张图片接口和 FP8 KV Cache，并降低了历史图片请求触发临时显存 OOM 的风险。</p>
+<p>当前，ANTLab已经上线了用量统计后台，用于统计token使用量，持续开发中：<a href="https://github.com/Mango03111/Ubuntu-Configure-Tools">https://github.com/Mango03111/Ubuntu-Configure-Tools</a></p>
+<p><img src="https://imgaly.51shazhu.com/autoupload/fsavu/20260903/mvKu/1478X872/%E7%94%A8%E9%87%8F%E7%BB%9F%E8%AE%A1.png" alt="1478X872/用量统计.png" loading='lazy'></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://github.com/Mango03111">Mango</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://superbigmango.top/posts/f0f97cc2.html">https://superbigmango.top/posts/f0f97cc2.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://superbigmango.top" target="_blank">SuperBigMango</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/AI/">AI</a><a class="post-meta__tags" href="/tags/AI-Infra/">AI Infra</a></div><div class="post-share"><div class="social-share" data-image="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/kavL/3840X1295/cover08.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/posts/c540b50e.html" title="【内网穿透】本地推理服务通过 FRP 暴露为公网 HTTPS API：配置记录与复盘"><img class="cover" src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png" onerror="onerror=null;src='/img/4041.png'" alt="cover of next post" loading='lazy'><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">【内网穿透】本地推理服务通过 FRP 暴露为公网 HTTPS API：配置记录与复盘</div></div><div class="info-2"><div class="info-item-1">参数与命名总表   分类 参数&#x2F;对象 最终值或名称 说明    记录时间 配置完成日期 2026-08-28 本文记录当日最终状态   云服务器 公网 IPv4 119.28.119.224 腾讯云 Lighthouse   云服务器 管理面板 1Panel 管理 OpenResty、frps 等   云服务器 frps 容器 1Panel-frps-TXDh Docker，network&#x3D;host   云服务器 frps 版本 0.64.0 与本地 frpc 保持一致   云服务器 frps 控制端口 TCP 7000 本地 frpc 主动连接此端口   云服务器 frps Dashboard TCP 7500 不属于推理 API 公网入口   云服务器 frps 配置 &#x2F;opt&#x2F;1panel&#x2F;apps&#x2F;frps&#x2F;frps&#x2F;data&#x2F;frps.toml 挂载到容器 &#x2F;etc&#x2F;frp&#x2F;frps.toml   云服务器 FRP 转发监听地址 127.0.0.1 1...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/7b15d684.html" title="HCCL_stream_signal_memory原理及使用方法"><img class="cover" src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/fooz/1920X750/cover12.jpg" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-10</div><div class="info-item-2">HCCL_stream_signal_memory原理及使用方法</div></div><div class="info-2"><div class="info-item-1">核心流程梳理主要流程函数 RunAsync：总调度，分三步 RunPreCopy：准备数据，部分rank与邻居先做一次规约或拷贝 RunAllReduceHDOptim：主规约过程，分多步，每步与不同邻居通信 RunFinalStep：处理非2的幂次时的收尾    关键数据结构 userMemIn：用户输入数据 **outputMem_**：算法内部buffer，存放中间结果 userMemOut：最终输出 links：与其他rank的通信链路 **meshStreams_**：多stream支持  以4个NPU为例（rankSize&#x3D;4, base&#x3D;2, nSteps&#x3D;2） 每个NPU初始有自己的输入数据 目标：所有NPU最终都拿到全局规约（如sum）结果  4个NPU的AllReduce通信过程步骤分解步骤0：数据准备（RunPreCopy） 每个NPU把自己的输入数据拷贝到outputMem_ 某些NPU与邻居先做一次规约或数据交换  步骤1：第一次规约（step&#x3D;1） 每个NPU与“距离为1”的邻居（rank异或1）交换数据并做规约...</div></div></div></a><a class="pagination-related" href="/posts/58974538.html" title="华为昇腾HCCL算法注册与执行机制概述"><img class="cover" src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/PFyM/2048X1152/dc02.jpg" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-10</div><div class="info-item-2">华为昇腾HCCL算法注册与执行机制概述</div></div><div class="info-2"><div class="info-item-1">HCCL（Huawei Collective Communication Library）是华为为昇腾（Ascend）AI 处理器提供的集合通信库，用于分布式深度学习训练中多卡、多机之间的高速数据通信，它实现了 AllReduce、AllGather、Broadcast 等常见集合通信算子，并针对昇腾硬件和高速互联进行了深度优化，作用类似于 NVIDIA GPU 生态中的 NCCL，常用于 MindSpore 及 Ascend 生态下的大规模模型训练。 整体架构核心组件123456789101112src/domain/collective_communication/algorithm/├── pub_inc/│   └── coll_executor_base.h            # 执行器基类定义├── impl/│   ├── operator/│   │   └── custom_all_reduce_operator.cc   # 算子实现│   └── coll_executor/│       ├── registry/│       │   ├── col...</div></div></div></a><a class="pagination-related" href="/posts/1a4047db.html" title="MRC 与 SRv6：让 10 万 GPU 级 AI 超算网络在故障中继续训练"><img class="cover" src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/PFyM/2048X1152/dc02.jpg" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-10</div><div class="info-item-2">MRC 与 SRv6：让 10 万 GPU 级 AI 超算网络在故障中继续训练</div></div><div class="info-2"><div class="info-item-1"> 本文改写自 OpenAI 官方工程博客《Supercomputer networking to accelerate large scale AI training》与论文《Resilient AI Supercomputer Networking using MRC and SRv6》。目标是用博客化的方式解释：为什么大规模 AI 训练需要新的网络协议，MRC 如何与多平面拓扑、SRv6 源路由一起，把“网络故障”从训练中断事件变成可被系统自动绕开的背景噪声。  论文链接：Resilient AI Supercomputer Networking using MRC and SRv6 问题不是平均带宽，而是最慢那一次通信在同步预训练中，成千上万甚至十万级 GPU 按训练 step 锁步推进。每个 step 中，GPU 之间要执行数据并行、张量并行、流水线并行、专家并行等多种通信。理想状态下，通信被尽量隐藏在计算之后；但现实里，只要某一次传输成为“长尾”，整个 step 都可能被拖慢。 这也是大规模训练网络最棘手的地方：平均吞吐量很高并不够，最慢的那条路径、最晚到达的那个包，才...</div></div></div></a><a class="pagination-related" href="/posts/97a78550.html" title="Ubuntu24原生环境安装与测试NVBandwidth记录"><img class="cover" src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-10</div><div class="info-item-2">Ubuntu24原生环境安装与测试NVBandwidth记录</div></div><div class="info-2"><div class="info-item-1">NVBandwidth 是 NVIDIA 官方提供的 GPU 带宽测试工具，用于测量 CPU↔GPU、GPU↔GPU、GPU 显存读写、Copy Engine、SM 拷贝内核等路径的实际带宽。NVBandwidth 的测试结果可以帮助分析 vLLM 使用 TP&#x2F;PP 多卡推理时，GPU 间通信是否成为性能瓶颈。 本文档记录在 Ubuntu 24 Desktop&#x2F;Server 环境下，针对 4 张 NVIDIA RTX 4090，使用 原生环境安装 CUDA Toolkit 13.2、编译并测试 NVIDIA NVBandwidth 的完整流程。 本文档不使用 Docker 进行测试，适用于希望在宿主机上直接运行 nvbandwidth 的场景。  环境说明当前测试环境：    项目 配置    操作系统 Ubuntu 24   GPU 4 × NVIDIA GeForce RTX 4090   NVIDIA 驱动版本 595.71.05   CUDA Toolkit 目标版本 CUDA Toolkit 13.2   测试工具 NVIDIA NVBandwidt...</div></div></div></a><a class="pagination-related" href="/posts/24f50170.html" title="Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录"><img class="cover" src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/kavL/3840X1295/cover08.jpg" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-10</div><div class="info-item-2">Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录</div></div><div class="info-2"><div class="info-item-1">本文记录在 Ubuntu 24 Desktop 系统上，使用 Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 大模型的完整流程。测试硬件为 4 张 RTX 4090 24GB，宿主机 NVIDIA 驱动版本为 595.71.05；本安装记录仅在此平台上经过验证，其余平台请按照自身需求调整策略。 本文目标是形成一套可复现的部署教程，因此只保留核心步骤，省略无意义的试错过程。 环境说明本次部署环境如下： 1234567操作系统：Ubuntu 24 Desktop显卡：4 × NVIDIA RTX 4090 24GBNVIDIA 驱动：595.71.05部署方式：Docker + vLLM OpenAI API Server模型：Qwen/Qwen3.6-35B-A3B-FP8模型存放目录：~/model服务端口：8000  由于 4 张 4090 总显存为 96GB，推荐优先使用 FP8 版本模型，即： 1Qwen/Qwen3.6-35B-A3B-FP8  不建议一开始直接部署 BF16 原版，因为 35B BF16 权重和 KV Cache 会带来更大的显...</div></div></div></a><a class="pagination-related" href="/posts/a9087025.html" title="Ubuntu 24 + Docker + 4*RTX 4090 安装 Megatron-LM 记录"><img class="cover" src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-12</div><div class="info-item-2">Ubuntu 24 + Docker + 4*RTX 4090 安装 Megatron-LM 记录</div></div><div class="info-2"><div class="info-item-1">环境说明本文记录在一台单机 4 卡 RTX 4090 服务器上，通过 Docker 部署 NVIDIA Megatron-LM，并完成从环境安装、NCCL 通信验证到 GPT 小模型训练测试的完整流程。 本机环境如下： 123456操作系统：Ubuntu 24 DesktopGPU：4 × NVIDIA GeForce RTX 4090NVIDIA Driver：595.71.05容器运行环境：Docker + NVIDIA Container ToolkitMegatron 路线：NVIDIA/Megatron-LM 主线版本基础镜像：nvcr.io/nvidia/pytorch:26.01-py3  Megatron-LM 主要用于大模型训练和并行训练实验，和 vLLM 的定位不同：vLLM 更偏推理部署，Megatron-LM 更偏训练、预训练、继续预训练、模型并行和分布式训练验证。  停止已有占用显存进程如果机器上正在运行的占用显存的服务，需要先停止，释放GPU。 1docker ps  如果看到正在运行的 vLLM 容器，例如 qwen36-vllm，执行： 1dock...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/67-meme-67.gif'" alt="avatar"/ loading='lazy'></div><div class="author-info-name">Mango</div><div class="author-info-description">给时光以生命，给岁月以文明</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">33</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Mango03111" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:yixuanhao_xidian@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #24292e;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到Big Mango的空间！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%93%E8%AE%BA%E5%85%88%E8%A1%8C"><span class="toc-number">1.</span> <span class="toc-text">结论先行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%80%E7%BB%88%E5%90%AF%E5%8A%A8%E5%8F%82%E6%95%B0"><span class="toc-number">2.</span> <span class="toc-text">最终启动参数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B5%8B%E8%AF%95%E6%96%B9%E6%B3%95%E4%B8%8E%E6%9C%80%E6%96%B0%E7%BB%93%E6%9E%9C"><span class="toc-number">3.</span> <span class="toc-text">测试方法与最新结果</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8E%86%E5%8F%B2%E5%80%99%E9%80%89%E5%AF%B9%E7%85%A7"><span class="toc-number">4.</span> <span class="toc-text">历史候选对照</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BC%98%E5%8C%96%E6%96%B9%E6%B3%95%E4%B8%8E%E6%95%88%E6%9E%9C"><span class="toc-number">5.</span> <span class="toc-text">优化方法与效果</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%A8%B3%E5%AE%9A%E6%80%A7%E4%B8%8E%E9%99%90%E5%88%B6"><span class="toc-number">6.</span> <span class="toc-text">稳定性与限制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%80%E7%BB%88%E9%80%89%E6%8B%A9"><span class="toc-number">7.</span> <span class="toc-text">最终选择</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%8E%E6%9C%80%E5%88%9D%E7%89%88%E6%9C%AC%E7%9A%84%E9%80%90%E5%8F%82%E6%95%B0%E5%AF%B9%E6%AF%94"><span class="toc-number">8.</span> <span class="toc-text">与最初版本的逐参数对比</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Docker-%E4%B8%8E%E5%B9%B6%E8%A1%8C%E5%8F%82%E6%95%B0"><span class="toc-number">8.1.</span> <span class="toc-text">Docker 与并行参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A8%A1%E5%9E%8B%E3%80%81KV-Cache-%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%96%87"><span class="toc-number">8.2.</span> <span class="toc-text">模型、KV Cache 与上下文</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%BE%E7%89%87%E8%BE%93%E5%85%A5%E5%8F%82%E6%95%B0"><span class="toc-number">8.3.</span> <span class="toc-text">图片输入参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#MTP-%E6%8E%A8%E6%B5%8B%E8%A7%A3%E7%A0%81%E5%8F%82%E6%95%B0"><span class="toc-number">8.4.</span> <span class="toc-text">MTP 推测解码参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CUDA-Graph-%E5%8F%82%E6%95%B0"><span class="toc-number">8.5.</span> <span class="toc-text">CUDA Graph 参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%A7%E8%83%BD%E4%B8%8E%E9%A2%84%E5%A1%AB%E5%85%85%E5%8F%82%E6%95%B0"><span class="toc-number">8.6.</span> <span class="toc-text">性能与预填充参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9C%80%E7%BB%88%E5%8F%96%E8%88%8D"><span class="toc-number">8.7.</span> <span class="toc-text">最终取舍</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/posts/f0f97cc2.html" title="Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录"><img src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/kavL/3840X1295/cover08.jpg" onerror="this.onerror=null;this.src='/img/4041.png'" alt="Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录"/ loading='lazy'></a><div class="content"><a class="title" href="/posts/f0f97cc2.html" title="Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录">Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录</a><time datetime="2026-09-01T08:47:51.000Z" title="发表于 2026-09-01 16:47:51">2026-09-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/c540b50e.html" title="【内网穿透】本地推理服务通过 FRP 暴露为公网 HTTPS API：配置记录与复盘"><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png" onerror="this.onerror=null;this.src='/img/4041.png'" alt="【内网穿透】本地推理服务通过 FRP 暴露为公网 HTTPS API：配置记录与复盘"/ loading='lazy'></a><div class="content"><a class="title" href="/posts/c540b50e.html" title="【内网穿透】本地推理服务通过 FRP 暴露为公网 HTTPS API：配置记录与复盘">【内网穿透】本地推理服务通过 FRP 暴露为公网 HTTPS API：配置记录与复盘</a><time datetime="2026-08-28T11:53:49.000Z" title="发表于 2026-08-28 19:53:49">2026-08-28</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/f528ac27.html" title="战术想定"><img src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/KOGS/1600X577/cover10.jpg" onerror="this.onerror=null;this.src='/img/4041.png'" alt="战术想定"/ loading='lazy'></a><div class="content"><a class="title" href="/posts/f528ac27.html" title="战术想定">战术想定</a><time datetime="2026-06-24T08:42:19.000Z" title="发表于 2026-06-24 16:42:19">2026-06-24</time></div></div></div></div></div></div></main><footer id="footer" style="background: transparent;"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Mango</span><span class="framework-info"><span>框架 </span><a href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div><div class="footer_custom_text"><p><a style="margin-inline:5px" target="_blank" href="https://github.com/"><img src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&logo=GitHub" title="本站项目由Github托管" loading='lazy'></a><a style="margin-inline:5px" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&logo=Claris" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可" loading='lazy'></a></p></div><script type="text/javascript" id="maid-script" src="https://unpkg.com/mermaid@undefined/dist/mermaid.min.js?v=undefined"></script><script>if (window.mermaid) {
+  var options = JSON.parse(document.getElementById('maid-script').getAttribute('mermaidoptioins'));
+  mermaid.initialize(options);
+}</script></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button><button id="go-down" type="button" title="直达底部" onclick="btf.scrollToDest(document.body.scrollHeight, 500)"><i class="fas fa-arrow-down"></i></button><button id="auto-scroll-btn" type="button" title="自动向下滚动"><i class="fas fa-rotate-right"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (false) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async src="/js/holiday-popup.js" data-pjax></script><script async src="/js/life-counter.js" data-pjax></script><script async src="/js/auto-scroll.js" data-pjax></script><script defer src="/js/album-waterfall.js"></script><script defer src="/js/home-stars.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      true
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div><!-- hexo injector body_end start --> <script data-pjax>if(document.getElementById('recent-posts') && (location.pathname ==='/'|| '/' ==='all')){
+    var parent = document.getElementById('recent-posts');
+    var child = '<div class="recent-post-item" style="width:100%;height: auto"><div id="catalog_magnet"><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/教程/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🏫 Mango 教程集合 (11)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/学习笔记/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">📖 Mango 学习笔记 (4)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/算法/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🧠 Mango 算法笔记 (2)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/计算机网络/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">💻 计算机网络 (7)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/梦啥说啥/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">💡 梦啥说啥 (6)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/音乐/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🎸 Mango 音乐小屋 (2)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><a class="magnet_link_more"  href="https://superbigmango.top/categories" style="flex:1;text-align: center;margin-bottom: 10px;">查看更多...</a></div></div>';
+    console.log('已挂载magnet')
+    parent.insertAdjacentHTML("afterbegin",child)}
+     </script><style>#catalog_magnet{flex-wrap: wrap;display: flex;width:100%;justify-content:space-between;padding: 10px 10px 0 10px;align-content: flex-start;}.magnet_item{flex-basis: calc(33.333333333333336% - 5px);background: #f2f2f2;margin-bottom: 10px;border-radius: 8px;transition: all 0.2s ease-in-out;}.magnet_item:hover{background: #792090}.magnet_link_more{color:#555}.magnet_link{color:black}.magnet_link:hover{color:white}@media screen and (max-width: 600px) {.magnet_item {flex-basis: 100%;}}.magnet_link_context{display:flex;padding: 10px;font-size:16px;transition: all 0.2s ease-in-out;}.magnet_link_context:hover{padding: 10px 20px;}</style>
+    <style></style><div class="js-pjax"><script async="async">var arr = document.getElementsByClassName('recent-post-item');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeInUp');
+    arr[i].setAttribute('data-wow-duration', '600ms');
+    arr[i].setAttribute('data-wow-delay', '50ms');
+    arr[i].setAttribute('data-wow-offset', '50');
+    arr[i].setAttribute('data-wow-iteration', '1');
+  }</script><script async="async">var arr = document.getElementsByClassName('aside-content');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeInUp');
+    arr[i].setAttribute('data-wow-duration', '450ms');
+    arr[i].setAttribute('data-wow-delay', '50ms');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script><script async="async">var arr = document.getElementsByClassName('container post-content');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeIn');
+    arr[i].setAttribute('data-wow-duration', '1200ms');
+    arr[i].setAttribute('data-wow-delay', '');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script></div><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow.min.js"></script><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow_init.js"></script><!-- hexo injector body_end end --></body></html>
