@@ -1,0 +1,501 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>RTX4090P2P与GDR恢复NVIDIA官方版本指南 | SuperBigMango</title><meta name="author" content="Mango"><meta name="copyright" content="Mango"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="目标：移除 RTX 4090 P2P&#x2F;GDR 非官方改造，恢复 NVIDIA 官方普通驱动和官方 NCCL，同时保留 CUDA 工具链、业务数据和 RDMA 网络栈。 推荐路径是恢复与现有用户态完全匹配的官方 595.71.05 open DKMS。不要用通配符清除所有 nvidia-* 或 libnvidia-* 包；这种做法容易一并删除 CUDA、容器运行时和桌面依赖。  1. 恢">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RTX4090P2P与GDR恢复NVIDIA官方版本指南">
+<meta property="og:url" content="https://superbigmango.top/posts/21e19566.html">
+<meta property="og:site_name" content="SuperBigMango">
+<meta property="og:description" content="目标：移除 RTX 4090 P2P&#x2F;GDR 非官方改造，恢复 NVIDIA 官方普通驱动和官方 NCCL，同时保留 CUDA 工具链、业务数据和 RDMA 网络栈。 推荐路径是恢复与现有用户态完全匹配的官方 595.71.05 open DKMS。不要用通配符清除所有 nvidia-* 或 libnvidia-* 包；这种做法容易一并删除 CUDA、容器运行时和桌面依赖。  1. 恢">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png">
+<meta property="article:published_time" content="2026-09-05T15:45:30.000Z">
+<meta property="article:modified_time" content="2026-09-05T15:47:02.189Z">
+<meta property="article:author" content="Mango">
+<meta property="article:tag" content="AI">
+<meta property="article:tag" content="AI Infra">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "RTX4090P2P与GDR恢复NVIDIA官方版本指南",
+  "url": "https://superbigmango.top/posts/21e19566.html",
+  "image": "https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png",
+  "datePublished": "2026-09-05T15:45:30.000Z",
+  "dateModified": "2026-09-05T15:47:02.189Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Mango",
+      "url": "https://github.com/Mango03111"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://superbigmango.top/posts/21e19566.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css?v=5.5.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const mediaQueryDark = window.matchMedia('(prefers-color-scheme: dark)')
+          const mediaQueryLight = window.matchMedia('(prefers-color-scheme: light)')
+
+          if (theme === undefined) {
+            if (mediaQueryLight.matches) activateLightMode()
+            else if (mediaQueryDark.matches) activateDarkMode()
+            else {
+              const hour = new Date().getHours()
+              const isNight = hour <= 6 || hour >= 18
+              isNight ? activateDarkMode() : activateLightMode()
+            }
+            mediaQueryDark.addEventListener('change', () => {
+              if (saveToLocal.get('theme') === undefined) {
+                e.matches ? activateDarkMode() : activateLightMode()
+              }
+            })
+          } else {
+            theme === 'light' ? activateLightMode() : activateDarkMode()
+          }
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":800,"highlightFullpage":true,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: true
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'RTX4090P2P与GDR恢复NVIDIA官方版本指南',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css" media="defer" onload="this.media='all'"><!-- hexo injector head_end start --><link rel="stylesheet" href="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/animate.min.css" media="print" onload="this.media='screen'"><!-- hexo injector head_end end --><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/background_01.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/67-meme-67.gif'" alt="avatar"/ loading='lazy'></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">35</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background: transparent;"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">SuperBigMango</span></a><a class="nav-page-title" href="/"><span class="site-name">RTX4090P2P与GDR恢复NVIDIA官方版本指南</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 图库</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">RTX4090P2P与GDR恢复NVIDIA官方版本指南</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-09-05T15:45:30.000Z" title="发表于 2026-09-05 23:45:30">2026-09-05</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-09-05T15:47:02.189Z" title="更新于 2026-09-05 23:47:02">2026-09-05</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/AIInfra/">AIInfra</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2.8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>11分钟</span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><blockquote>
+<p>目标：移除 RTX 4090 P2P&#x2F;GDR 非官方改造，恢复 NVIDIA 官方普通驱动和官方 NCCL，同时保留 CUDA 工具链、业务数据和 RDMA 网络栈。</p>
+<p>推荐路径是恢复与现有用户态完全匹配的官方 <code>595.71.05</code> open DKMS。不要用通配符清除所有 <code>nvidia-*</code> 或 <code>libnvidia-*</code> 包；这种做法容易一并删除 CUDA、容器运行时和桌面依赖。</p>
+</blockquote>
+<h2 id="1-恢复后的目标状态"><a href="#1-恢复后的目标状态" class="headerlink" title="1. 恢复后的目标状态"></a>1. 恢复后的目标状态</h2><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>NVIDIA 内核模块</td>
+<td>官方 <code>nvidia-dkms-open 595.71.05-1ubuntu1</code></td>
+</tr>
+<tr>
+<td>NVIDIA 用户态和固件</td>
+<td>官方 <code>595.71.05-1ubuntu1</code></td>
+</tr>
+<tr>
+<td>NCCL</td>
+<td>仓库提供的官方 <code>libnccl2</code> &#x2F; <code>libnccl-dev</code></td>
+</tr>
+<tr>
+<td>P2P 补丁</td>
+<td><code>nvidia-open-p2p-dkms</code> 不再安装，DKMS 无 <code>nvidia-open-p2p</code></td>
+</tr>
+<tr>
+<td>GDR shim</td>
+<td>业务进程不再设置 <code>LD_PRELOAD=...libgdrshim.so</code></td>
+</tr>
+<tr>
+<td>补丁 NCCL</td>
+<td>不再通过 <code>LD_LIBRARY_PATH</code> 加载 <code>/opt/rtx4090-gdr/nccl-gdr</code></td>
+</tr>
+<tr>
+<td>RDMA 栈</td>
+<td>可保留 MLNX_OFED、mlx5 和官方 <code>nvidia_peermem</code></td>
+</tr>
+</tbody></table>
+<p><code>nvidia_peermem</code> 是官方驱动也会提供的模块。它存在不代表 GDR 已被非官方解锁，因此恢复时不必为了“看不到该模块”而破坏 RDMA 栈。</p>
+<h2 id="2-恢复前准备"><a href="#2-恢复前准备" class="headerlink" title="2. 恢复前准备"></a>2. 恢复前准备</h2><h3 id="第-1-步：确认维护窗口并停止任务"><a href="#第-1-步：确认维护窗口并停止任务" class="headerlink" title="第 1 步：确认维护窗口并停止任务"></a>第 1 步：确认维护窗口并停止任务</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nvidia-smi</span><br><span class="line">nvidia-smi --query-compute-apps=pid,process_name,gpu_uuid --format=csv</span><br><span class="line">docker ps --format <span class="string">&#x27;table &#123;&#123;.Names&#125;&#125;\t&#123;&#123;.Status&#125;&#125;\t&#123;&#123;.Image&#125;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>正常停止所有 GPU、NCCL、MPI 和使用 GDR shim 的容器。切换内核模块需要重启，不支持无中断恢复。</p>
+<h3 id="第-2-步：保存现状"><a href="#第-2-步：保存现状" class="headerlink" title="第 2 步：保存现状"></a>第 2 步：保存现状</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p <span class="string">&quot;<span class="variable">$HOME</span>/nvidia-before-official-restore&quot;</span></span><br><span class="line"><span class="built_in">cat</span> /proc/driver/nvidia/version \</span><br><span class="line">  &gt; <span class="string">&quot;<span class="variable">$HOME</span>/nvidia-before-official-restore/driver-version.txt&quot;</span></span><br><span class="line">modinfo nvidia \</span><br><span class="line">  &gt; <span class="string">&quot;<span class="variable">$HOME</span>/nvidia-before-official-restore/modinfo-nvidia.txt&quot;</span></span><br><span class="line">dkms status \</span><br><span class="line">  &gt; <span class="string">&quot;<span class="variable">$HOME</span>/nvidia-before-official-restore/dkms.txt&quot;</span></span><br><span class="line">dpkg-query -W \</span><br><span class="line">  &gt; <span class="string">&quot;<span class="variable">$HOME</span>/nvidia-before-official-restore/packages.txt&quot;</span></span><br><span class="line">apt-mark showhold \</span><br><span class="line">  &gt; <span class="string">&quot;<span class="variable">$HOME</span>/nvidia-before-official-restore/holds.txt&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="第-3-步：确认官方精确版本仍可获得"><a href="#第-3-步：确认官方精确版本仍可获得" class="headerlink" title="第 3 步：确认官方精确版本仍可获得"></a>第 3 步：确认官方精确版本仍可获得</h3><p>本文使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">OFFICIAL_VER=595.71.05-1ubuntu1</span><br><span class="line">apt-cache policy \</span><br><span class="line">  nvidia-dkms-open nvidia-kernel-source-open \</span><br><span class="line">  nvidia-kernel-common nvidia-firmware nvidia-modprobe \</span><br><span class="line">  libnvidia-compute libnvidia-cfg1 nvidia-persistenced</span><br></pre></td></tr></table></figure>
+
+<p>每个关键包的版本表中都应包含 <code>595.71.05-1ubuntu1</code>。如果仓库不再提供该版本，先下载并归档整套匹配的官方包，或改为执行本文第 8 节的“整栈升级”，不要只升级内核模块。</p>
+<h3 id="第-4-步：预演包操作"><a href="#第-4-步：预演包操作" class="headerlink" title="第 4 步：预演包操作"></a>第 4 步：预演包操作</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt-get -s remove nvidia-open-p2p-dkms</span><br><span class="line"><span class="built_in">sudo</span> apt-get -s install --allow-change-held-packages \</span><br><span class="line">  nvidia-dkms-open=<span class="string">&quot;<span class="variable">$OFFICIAL_VER</span>&quot;</span> \</span><br><span class="line">  nvidia-kernel-source-open=<span class="string">&quot;<span class="variable">$OFFICIAL_VER</span>&quot;</span> \</span><br><span class="line">  nvidia-kernel-common=<span class="string">&quot;<span class="variable">$OFFICIAL_VER</span>&quot;</span> \</span><br><span class="line">  nvidia-firmware=<span class="string">&quot;<span class="variable">$OFFICIAL_VER</span>&quot;</span> \</span><br><span class="line">  nvidia-modprobe=<span class="string">&quot;<span class="variable">$OFFICIAL_VER</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>确认模拟输出不会移除 CUDA 工具链、NCCL、Docker&#x2F;NVIDIA Container Toolkit 或其他业务依赖。</p>
+<hr>
+<h2 id="3-第一部分：撤销-GDR-用户态改造"><a href="#3-第一部分：撤销-GDR-用户态改造" class="headerlink" title="3. 第一部分：撤销 GDR 用户态改造"></a>3. 第一部分：撤销 GDR 用户态改造</h2><p>GDR 是进程级 shim 和补丁 NCCL，因此应先撤销用户态配置，再更换内核驱动。</p>
+<h3 id="第-1-步：定位所有-GDR-注入点"><a href="#第-1-步：定位所有-GDR-注入点" class="headerlink" title="第 1 步：定位所有 GDR 注入点"></a>第 1 步：定位所有 GDR 注入点</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">grep -RInE <span class="string">&#x27;libgdrshim|rtx4090-gdr|nccl-gdr|NCCL_NET_GDR&#x27;</span> \</span><br><span class="line">  /etc/environment /etc/profile /etc/profile.d \</span><br><span class="line">  <span class="string">&quot;<span class="variable">$HOME</span>/.profile&quot;</span> <span class="string">&quot;<span class="variable">$HOME</span>/.bashrc&quot;</span> \</span><br><span class="line">  /etc/systemd/system /usr/local/bin \</span><br><span class="line">  2&gt;/dev/null</span><br></pre></td></tr></table></figure>
+
+<p>同时检查业务的 systemd unit、Docker Compose、Kubernetes manifest、Slurm 脚本、MPI hostfile 和容器入口脚本。</p>
+<h3 id="第-2-步：从业务启动配置中移除以下设置"><a href="#第-2-步：从业务启动配置中移除以下设置" class="headerlink" title="第 2 步：从业务启动配置中移除以下设置"></a>第 2 步：从业务启动配置中移除以下设置</h3><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">LD_PRELOAD=/opt/rtx4090-gdr/lib/libgdrshim.so</span><br><span class="line">LD_LIBRARY_PATH=/opt/rtx4090-gdr/nccl-gdr/lib:...</span><br><span class="line">GDRSHIM_VERBOSE=...</span><br><span class="line">GDRSHIM_DUMP=...</span><br><span class="line">NCCL_NET_GDR_LEVEL=...</span><br></pre></td></tr></table></figure>
+
+<p>不要直接删除包含其他库的整个 <code>LD_PRELOAD</code> 或 <code>LD_LIBRARY_PATH</code>；只移除 GDR shim 和补丁 NCCL 对应的条目。</p>
+<p>如果当前 shell 只是临时设置，可执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">unset</span> LD_PRELOAD</span><br><span class="line"><span class="built_in">unset</span> GDRSHIM_VERBOSE GDRSHIM_DUMP GDRSHIM_TRACE</span><br><span class="line"><span class="built_in">unset</span> NCCL_NET_GDR_LEVEL NCCL_NET_GDR_READ</span><br></pre></td></tr></table></figure>
+
+<p>若 <code>LD_LIBRARY_PATH</code> 中还包含其他必要目录，请重新开启一个干净 shell，而不是粗暴 <code>unset</code>。</p>
+<h3 id="第-3-步：恢复官方-NCCL"><a href="#第-3-步：恢复官方-NCCL" class="headerlink" title="第 3 步：恢复官方 NCCL"></a>第 3 步：恢复官方 NCCL</h3><p>先确认将使用的官方版本：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">dpkg-query -W -f=<span class="string">&#x27;$&#123;Package&#125;\t$&#123;Version&#125;\n&#x27;</span> libnccl2 libnccl-dev</span><br><span class="line">apt-cache policy libnccl2 libnccl-dev</span><br></pre></td></tr></table></figure>
+
+<p>如果曾覆盖系统库，重新安装当前已登记版本：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">NCCL_RUNTIME_VER=$(dpkg-query -W -f=<span class="string">&#x27;$&#123;Version&#125;&#x27;</span> libnccl2)</span><br><span class="line">NCCL_DEV_VER=$(dpkg-query -W -f=<span class="string">&#x27;$&#123;Version&#125;&#x27;</span> libnccl-dev)</span><br><span class="line"><span class="built_in">sudo</span> apt-get install --reinstall \</span><br><span class="line">  libnccl2=<span class="string">&quot;<span class="variable">$NCCL_RUNTIME_VER</span>&quot;</span> \</span><br><span class="line">  libnccl-dev=<span class="string">&quot;<span class="variable">$NCCL_DEV_VER</span>&quot;</span></span><br><span class="line"><span class="built_in">sudo</span> ldconfig</span><br></pre></td></tr></table></figure>
+
+<p>如果补丁 NCCL 始终只部署在 <code>/opt/rtx4090-gdr</code>，无需删除它；停用环境变量即可。建议先保留到官方恢复验证完成，再按变更管理规则归档。</p>
+<h3 id="第-4-步：验证新进程不会再注入-shim"><a href="#第-4-步：验证新进程不会再注入-shim" class="headerlink" title="第 4 步：验证新进程不会再注入 shim"></a>第 4 步：验证新进程不会再注入 shim</h3><p>打开一个新的登录 shell，然后检查：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">env</span> | grep -E <span class="string">&#x27;^(LD_PRELOAD|LD_LIBRARY_PATH|GDRSHIM_|NCCL_NET_GDR)&#x27;</span> || <span class="literal">true</span></span><br><span class="line">ldconfig -p | grep <span class="string">&#x27;libnccl.so.2&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>启动业务前，还应检查对应容器或服务内部的环境，而不只是宿主机 shell。</p>
+<hr>
+<h2 id="4-第二部分：撤销-P2P-补丁驱动"><a href="#4-第二部分：撤销-P2P-补丁驱动" class="headerlink" title="4. 第二部分：撤销 P2P 补丁驱动"></a>4. 第二部分：撤销 P2P 补丁驱动</h2><h3 id="第-1-步：解除相关-hold"><a href="#第-1-步：解除相关-hold" class="headerlink" title="第 1 步：解除相关 hold"></a>第 1 步：解除相关 hold</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> pkg <span class="keyword">in</span> \</span><br><span class="line">  nvidia-open-p2p-dkms \</span><br><span class="line">  nvidia-dkms-open nvidia-kernel-source-open \</span><br><span class="line">  nvidia-kernel-common nvidia-firmware nvidia-modprobe; <span class="keyword">do</span></span><br><span class="line">  <span class="built_in">sudo</span> apt-mark unhold <span class="string">&quot;<span class="variable">$pkg</span>&quot;</span> 2&gt;/dev/null || <span class="literal">true</span></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>某些包不存在时，<code>apt-mark</code> 可能打印提示，可继续核对下一步。</p>
+<h3 id="第-2-步：移除补丁-DKMS-包"><a href="#第-2-步：移除补丁-DKMS-包" class="headerlink" title="第 2 步：移除补丁 DKMS 包"></a>第 2 步：移除补丁 DKMS 包</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt-get remove --allow-change-held-packages \</span><br><span class="line">  nvidia-open-p2p-dkms</span><br></pre></td></tr></table></figure>
+
+<p>该包的 <code>prerm</code> 会执行 <code>dkms remove -m nvidia-open-p2p -v 595.71.05 --all</code>。随后确认：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dkms status | grep nvidia || <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>如果包已不存在但 DKMS 条目仍残留，再执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> dkms remove -m nvidia-open-p2p -v 595.71.05 --all</span><br></pre></td></tr></table></figure>
+
+<p>不要删除 <code>/lib/modules</code> 下的文件来代替 DKMS 卸载；这样会绕过包管理状态。</p>
+<h3 id="第-3-步：安装同版本-NVIDIA-官方-open-DKMS"><a href="#第-3-步：安装同版本-NVIDIA-官方-open-DKMS" class="headerlink" title="第 3 步：安装同版本 NVIDIA 官方 open DKMS"></a>第 3 步：安装同版本 NVIDIA 官方 open DKMS</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">OFFICIAL_VER=595.71.05-1ubuntu1</span><br><span class="line"><span class="built_in">sudo</span> apt-get install --allow-change-held-packages --reinstall \</span><br><span class="line">  nvidia-kernel-source-open=<span class="string">&quot;<span class="variable">$OFFICIAL_VER</span>&quot;</span> \</span><br><span class="line">  nvidia-kernel-common=<span class="string">&quot;<span class="variable">$OFFICIAL_VER</span>&quot;</span> \</span><br><span class="line">  nvidia-firmware=<span class="string">&quot;<span class="variable">$OFFICIAL_VER</span>&quot;</span> \</span><br><span class="line">  nvidia-modprobe=<span class="string">&quot;<span class="variable">$OFFICIAL_VER</span>&quot;</span> \</span><br><span class="line">  nvidia-dkms-open=<span class="string">&quot;<span class="variable">$OFFICIAL_VER</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>这里恢复的是 NVIDIA CUDA 仓库的官方 open 模块，与现有 595.71.05 用户态库匹配。不要同时安装 Ubuntu 的 <code>nvidia-dkms-595-open</code> 和 CUDA 仓库的 <code>nvidia-dkms-open</code>。</p>
+<h3 id="第-4-步：检查官方-DKMS-构建"><a href="#第-4-步：检查官方-DKMS-构建" class="headerlink" title="第 4 步：检查官方 DKMS 构建"></a>第 4 步：检查官方 DKMS 构建</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">dkms status | grep nvidia</span><br><span class="line">modinfo -k <span class="string">&quot;<span class="subst">$(uname -r)</span>&quot;</span> nvidia | grep -E <span class="string">&#x27;^(filename|version|license):&#x27;</span></span><br><span class="line">find <span class="string">&quot;/lib/modules/<span class="subst">$(uname -r)</span>/updates/dkms&quot;</span> -maxdepth 1 \</span><br><span class="line">  -<span class="built_in">type</span> f -name <span class="string">&#x27;nvidia*.ko*&#x27;</span> -<span class="built_in">print</span></span><br></pre></td></tr></table></figure>
+
+<p>预期 DKMS 名称是 <code>nvidia/595.71.05</code>，而不是 <code>nvidia-open-p2p/595.71.05</code>。</p>
+<p>若当前内核尚未构建成功：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt-get install <span class="string">&quot;linux-headers-<span class="subst">$(uname -r)</span>&quot;</span> dkms</span><br><span class="line"><span class="built_in">sudo</span> dkms autoinstall -k <span class="string">&quot;<span class="subst">$(uname -r)</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="第-5-步：更新-initramfs-并重启"><a href="#第-5-步：更新-initramfs-并重启" class="headerlink" title="第 5 步：更新 initramfs 并重启"></a>第 5 步：更新 initramfs 并重启</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> depmod -a</span><br><span class="line"><span class="built_in">sudo</span> update-initramfs -u -k <span class="string">&quot;<span class="subst">$(uname -r)</span>&quot;</span></span><br><span class="line"><span class="built_in">sudo</span> reboot</span><br></pre></td></tr></table></figure>
+
+<p>不要在有 GPU 任务时尝试用 <code>modprobe -r</code> 热切换整套 NVIDIA 模块。重启是更可靠的模块边界。</p>
+<hr>
+<h2 id="5-重启后的官方驱动验收"><a href="#5-重启后的官方驱动验收" class="headerlink" title="5. 重启后的官方驱动验收"></a>5. 重启后的官方驱动验收</h2><h3 id="第-1-步：确认驱动和-DKMS-来源"><a href="#第-1-步：确认驱动和-DKMS-来源" class="headerlink" title="第 1 步：确认驱动和 DKMS 来源"></a>第 1 步：确认驱动和 DKMS 来源</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/driver/nvidia/version</span><br><span class="line">modinfo nvidia | grep -E <span class="string">&#x27;^(filename|version|license|signer):&#x27;</span></span><br><span class="line">dkms status | grep nvidia</span><br><span class="line">nvidia-smi --query-gpu=index,name,pci.bus_id,driver_version,memory.total --format=csv</span><br></pre></td></tr></table></figure>
+
+<p>应满足：</p>
+<ul>
+<li>驱动版本为 595.71.05；</li>
+<li>构建标识为 NVIDIA 官方构建，不是本机补丁构建；</li>
+<li>DKMS 仅显示 <code>nvidia/595.71.05</code>；</li>
+<li>不存在 <code>nvidia-open-p2p</code> DKMS 条目。</li>
+</ul>
+<h3 id="第-2-步：确认-P2P-补丁已失效"><a href="#第-2-步：确认-P2P-补丁已失效" class="headerlink" title="第 2 步：确认 P2P 补丁已失效"></a>第 2 步：确认 P2P 补丁已失效</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nvidia-smi topo -p2p r</span><br></pre></td></tr></table></figure>
+
+<p>RTX 4090 GPU 对不应再显示补丁状态下的全 <code>OK</code>。具体状态文字可能随驱动版本变化。</p>
+<p>再用官方 NCCL 做实际路径验证：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /home/antl/ncu/nccl-tests-master/build</span><br><span class="line">NCCL_DEBUG=INFO \</span><br><span class="line">NCCL_DEBUG_SUBSYS=INIT,P2P \</span><br><span class="line">./all_reduce_perf -b 8M -e 128M -f 2 -g 3</span><br></pre></td></tr></table></figure>
+
+<p>预期不再出现 <code>via P2P/direct pointer</code>，通常会回退到 <code>via SHM/direct</code>。测试仍应为 0 wrong；恢复官方版本并不意味着 NCCL 应失败。</p>
+<h3 id="第-3-步：确认-GDR-shim-已失效"><a href="#第-3-步：确认-GDR-shim-已失效" class="headerlink" title="第 3 步：确认 GDR shim 已失效"></a>第 3 步：确认 GDR shim 已失效</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">env</span> | grep -E <span class="string">&#x27;^(LD_PRELOAD|GDRSHIM_)&#x27;</span> || <span class="literal">true</span></span><br><span class="line"><span class="built_in">readlink</span> -f <span class="string">&quot;<span class="subst">$(ldconfig -p | awk &#x27;/libnccl.so.2/&#123;print $NF; exit&#125;&#x27;)</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>NCCL 应解析到系统官方库，而不是 <code>/opt/rtx4090-gdr</code>。</p>
+<p>如果需要验证非 GDR 网络路径，可在跨节点&#x2F;隔离网络命名空间测试中明确设置：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NCCL_NET_GDR_LEVEL=LOC NCCL_DEBUG=INFO NCCL_DEBUG_SUBSYS=NET &lt;测试命令&gt;</span><br></pre></td></tr></table></figure>
+
+<p>预期数据经 host staging，并且不加载 <code>libgdrshim.so</code>。不要用单节点普通 AllReduce 判断 GDR，因为单节点默认不会使用 NET&#x2F;IB。</p>
+<h3 id="第-4-步：检查系统健康"><a href="#第-4-步：检查系统健康" class="headerlink" title="第 4 步：检查系统健康"></a>第 4 步：检查系统健康</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt-get check</span><br><span class="line">journalctl -k -b --no-pager | grep -Ei <span class="string">&#x27;NVRM|Xid|BAR|nvidia&#x27;</span></span><br><span class="line">nvidia-smi</span><br></pre></td></tr></table></figure>
+
+<p>不得存在 Xid、API mismatch、固件缺失或模块加载失败。</p>
+<h2 id="6-恢复版本-hold"><a href="#6-恢复版本-hold" class="headerlink" title="6. 恢复版本 hold"></a>6. 恢复版本 hold</h2><p>确认官方驱动稳定后，可重新固定匹配版本，避免自动升级其中一部分：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt-mark hold \</span><br><span class="line">  nvidia-dkms-open nvidia-kernel-source-open \</span><br><span class="line">  nvidia-kernel-common nvidia-firmware nvidia-modprobe \</span><br><span class="line">  libnvidia-compute libnvidia-cfg1 libnvidia-decode libnvidia-encode \</span><br><span class="line">  libnvidia-fbc1 libnvidia-gl libnvidia-gpucomp nvidia-persistenced \</span><br><span class="line">  xserver-xorg-video-nvidia</span><br></pre></td></tr></table></figure>
+
+<p>是否 hold CUDA 和 NCCL 取决于站点升级策略，但同一个维护周期内应避免只升级半套驱动。</p>
+<h2 id="7-可选清理"><a href="#7-可选清理" class="headerlink" title="7. 可选清理"></a>7. 可选清理</h2><p>只有在官方版本完成验收后，才考虑清理非官方运行产物：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/opt/rtx4090-gdr/</span><br><span class="line">/usr/src/nvidia-open-p2p-595.71.05/</span><br></pre></td></tr></table></figure>
+
+<p>优先归档而不是直接删除，并保存 SHA-256、源码、构建信息和有效测试日志。<code>apt</code>&#x2F;DKMS 正常卸载后，<code>/usr/src/nvidia-open-p2p-595.71.05</code> 通常已被包管理器处理。</p>
+<p>保留以下资料不会影响官方驱动运行：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">/home/antl/ncu/p2p/</span><br><span class="line">/home/antl/ncu/P2P and GDR Log/</span><br><span class="line">/home/antl/perftest-gdr/</span><br></pre></td></tr></table></figure>
+
+<h2 id="8-如果要升级到新的官方驱动分支"><a href="#8-如果要升级到新的官方驱动分支" class="headerlink" title="8. 如果要升级到新的官方驱动分支"></a>8. 如果要升级到新的官方驱动分支</h2><p>“恢复官方”和“升级驱动”最好分成两个维护窗口。先按本文恢复官方 595.71.05 并验收，再升级到仓库推荐版本。</p>
+<p>升级前执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ubuntu-drivers devices</span><br><span class="line">apt-cache policy nvidia-driver-595-open nvidia-driver-580-open</span><br></pre></td></tr></table></figure>
+
+<p>如果决定升级，必须把以下组件作为一个版本集合处理：</p>
+<ul>
+<li>NVIDIA DKMS&#x2F;kernel source；</li>
+<li>kernel common 和 firmware；</li>
+<li><code>libnvidia-*</code> 用户态库；</li>
+<li><code>nvidia-modprobe</code>、<code>nvidia-persistenced</code>；</li>
+<li>显示驱动（若安装）；</li>
+<li>与目标驱动兼容的 CUDA&#x2F;NCCL。</li>
+</ul>
+<p>不要只安装候选版本的 <code>nvidia-dkms-open</code>。本机 CUDA 仓库的候选版本可能高于当前 595 分支，单包升级容易造成 <code>NVRM: API mismatch</code>。</p>
+<h2 id="9-故障恢复"><a href="#9-故障恢复" class="headerlink" title="9. 故障恢复"></a>9. 故障恢复</h2><h3 id="重启后-nvidia-smi-失败"><a href="#重启后-nvidia-smi-失败" class="headerlink" title="重启后 nvidia-smi 失败"></a>重启后 <code>nvidia-smi</code> 失败</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">uname</span> -r</span><br><span class="line">dkms status</span><br><span class="line">modinfo nvidia | grep -E <span class="string">&#x27;^(filename|version):&#x27;</span></span><br><span class="line"><span class="built_in">cat</span> /proc/driver/nvidia/version 2&gt;/dev/null</span><br><span class="line">journalctl -k -b --no-pager | grep -Ei <span class="string">&#x27;NVRM|Xid|nvidia|firmware&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>重点检查：当前内核是否有 headers、DKMS 是否为该内核安装、内核模块与 <code>libcuda</code>&#x2F;NVML 是否同版本。</p>
+<h3 id="系统里同时出现两个-NVIDIA-DKMS-名称"><a href="#系统里同时出现两个-NVIDIA-DKMS-名称" class="headerlink" title="系统里同时出现两个 NVIDIA DKMS 名称"></a>系统里同时出现两个 NVIDIA DKMS 名称</h3><p>不要重启进入不确定状态。先用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dkms status | grep nvidia</span><br><span class="line">dpkg-query -W -f=<span class="string">&#x27;$&#123;binary:Package&#125;\t$&#123;Version&#125;\t$&#123;Status&#125;\n&#x27;</span> \</span><br><span class="line">  | grep -E <span class="string">&#x27;^nvidia-(open-p2p-dkms|dkms-open|dkms-[0-9]+-open)&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>确定保留哪一套包，再通过 <code>apt</code> 和 <code>dkms remove</code> 正常卸载另一套。</p>
+<h3 id="apt-因-hold-或版本依赖拒绝操作"><a href="#apt-因-hold-或版本依赖拒绝操作" class="headerlink" title="apt 因 hold 或版本依赖拒绝操作"></a>apt 因 hold 或版本依赖拒绝操作</h3><p>先模拟并显式指定同一版本，不要使用 <code>--fix-broken</code> 盲目接受候选版本：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">apt-mark showhold | grep -E <span class="string">&#x27;nvidia|libnvidia&#x27;</span></span><br><span class="line">apt-cache policy &lt;相关包&gt;</span><br><span class="line"><span class="built_in">sudo</span> apt-get -s install &lt;包名&gt;=&lt;同一完整版本&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="10-最终验收清单"><a href="#10-最终验收清单" class="headerlink" title="10. 最终验收清单"></a>10. 最终验收清单</h2><ul>
+<li><input disabled="" type="checkbox"> 所有 GPU&#x2F;NCCL 业务在维护前已正常停止；</li>
+<li><input disabled="" type="checkbox"> 业务和容器中不再注入 <code>libgdrshim.so</code>；</li>
+<li><input disabled="" type="checkbox"> 业务不再从补丁 NCCL 目录加载 <code>libnccl.so.2</code>；</li>
+<li><input disabled="" type="checkbox"> <code>nvidia-open-p2p-dkms</code> 包和 DKMS 条目均不存在；</li>
+<li><input disabled="" type="checkbox"> 官方 <code>nvidia/595.71.05</code> DKMS 已为当前内核安装；</li>
+<li><input disabled="" type="checkbox"> NVIDIA 内核模块、固件、NVML、CUDA 用户态库版本匹配；</li>
+<li><input disabled="" type="checkbox"> <code>nvidia-smi</code> 正常，内核日志无 Xid&#x2F;API mismatch；</li>
+<li><input disabled="" type="checkbox"> NCCL 不再走补丁 P2P 路径，但测试仍为 0 wrong；</li>
+<li><input disabled="" type="checkbox"> 跨节点测试不再加载 shim，网络回退路径工作正常；</li>
+<li><input disabled="" type="checkbox"> 已保存恢复前后包清单、DKMS 状态和测试日志。</li>
+</ul>
+<h2 id="11-本机恢复参考状态"><a href="#11-本机恢复参考状态" class="headerlink" title="11. 本机恢复参考状态"></a>11. 本机恢复参考状态</h2><p>截至 2026-09-04，本机已观察到的官方状态为：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">nvidia-dkms-open                 595.71.05-1ubuntu1</span><br><span class="line">nvidia-kernel-source-open        595.71.05-1ubuntu1</span><br><span class="line">nvidia-kernel-common             595.71.05-1ubuntu1</span><br><span class="line">nvidia-firmware                  595.71.05-1ubuntu1</span><br><span class="line">nvidia-modprobe                  595.71.05-1ubuntu1</span><br><span class="line">DKMS: nvidia/595.71.05, 6.8.0-138-generic, x86_64: installed</span><br></pre></td></tr></table></figure>
+
+<p>这个状态可作为恢复成功的本机基准，但实际执行前仍须以 <code>uname -r</code> 和 <code>apt-cache policy</code> 的实时输出为准。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://github.com/Mango03111">Mango</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://superbigmango.top/posts/21e19566.html">https://superbigmango.top/posts/21e19566.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://superbigmango.top" target="_blank">SuperBigMango</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/AI/">AI</a><a class="post-meta__tags" href="/tags/AI-Infra/">AI Infra</a></div><div class="post-share"><div class="social-share" data-image="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/posts/deffa08e.html" title="RTX4090P2P与GDR解锁指南"><img class="cover" src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/UgQr/3840X1145/cover11.jpg" onerror="onerror=null;src='/img/4041.png'" alt="cover of next post" loading='lazy'><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">RTX4090P2P与GDR解锁指南</div></div><div class="info-2"><div class="info-item-1"> 适用范围：Ubuntu 22.04、RTX 4090、NVIDIA 595.71.05 open 驱动、CUDA 13、NCCL 2.31.x，以及 ConnectX-6&#x2F;7 RoCE 网络。 本文依据本机 /home/antl/ncu 中的补丁驱动、NCCL Tests 和实验报告整理。P2P 与 GDR 均属于非官方改造，不受 NVIDIA 支持。驱动安装或切换会中断所有 GPU 任务，并需要重启。  1. 先理解 P2P 与 GDRP2P 和 GDR 解决的是两类不同问题：    功能 数据路径 主要用途 本机实现方式    PCIe P2P GPU 显存直接访问另一张 GPU 显存 单机多卡 NCCL、DDP、TP 社区补丁版 NVIDIA open 内核模块   GPUDirect RDMA（GDR） RNIC 直接 DMA 到&#x2F;从 GPU 显存 跨节点 IB&#x2F;RoCE 通信 NV503C 注册 shim + 补丁 NCCL   正确顺序是：先完成 P2P，再配置 GDR。P2P 成功不等于 GDR 成功；nvidia_peermem 已...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/58974538.html" title="华为昇腾HCCL算法注册与执行机制概述"><img class="cover" src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/PFyM/2048X1152/dc02.jpg" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-10</div><div class="info-item-2">华为昇腾HCCL算法注册与执行机制概述</div></div><div class="info-2"><div class="info-item-1">HCCL（Huawei Collective Communication Library）是华为为昇腾（Ascend）AI 处理器提供的集合通信库，用于分布式深度学习训练中多卡、多机之间的高速数据通信，它实现了 AllReduce、AllGather、Broadcast 等常见集合通信算子，并针对昇腾硬件和高速互联进行了深度优化，作用类似于 NVIDIA GPU 生态中的 NCCL，常用于 MindSpore 及 Ascend 生态下的大规模模型训练。 整体架构核心组件123456789101112src/domain/collective_communication/algorithm/├── pub_inc/│   └── coll_executor_base.h            # 执行器基类定义├── impl/│   ├── operator/│   │   └── custom_all_reduce_operator.cc   # 算子实现│   └── coll_executor/│       ├── registry/│       │   ├── col...</div></div></div></a><a class="pagination-related" href="/posts/7b15d684.html" title="HCCL_stream_signal_memory原理及使用方法"><img class="cover" src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-10</div><div class="info-item-2">HCCL_stream_signal_memory原理及使用方法</div></div><div class="info-2"><div class="info-item-1">核心流程梳理主要流程函数 RunAsync：总调度，分三步 RunPreCopy：准备数据，部分rank与邻居先做一次规约或拷贝 RunAllReduceHDOptim：主规约过程，分多步，每步与不同邻居通信 RunFinalStep：处理非2的幂次时的收尾    关键数据结构 userMemIn：用户输入数据 **outputMem_**：算法内部buffer，存放中间结果 userMemOut：最终输出 links：与其他rank的通信链路 **meshStreams_**：多stream支持  以4个NPU为例（rankSize&#x3D;4, base&#x3D;2, nSteps&#x3D;2） 每个NPU初始有自己的输入数据 目标：所有NPU最终都拿到全局规约（如sum）结果  4个NPU的AllReduce通信过程步骤分解步骤0：数据准备（RunPreCopy） 每个NPU把自己的输入数据拷贝到outputMem_ 某些NPU与邻居先做一次规约或数据交换  步骤1：第一次规约（step&#x3D;1） 每个NPU与“距离为1”的邻居（rank异或1）交换数据并做规约...</div></div></div></a><a class="pagination-related" href="/posts/1a4047db.html" title="MRC 与 SRv6：让 10 万 GPU 级 AI 超算网络在故障中继续训练"><img class="cover" src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/PFyM/2048X1152/dc02.jpg" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-10</div><div class="info-item-2">MRC 与 SRv6：让 10 万 GPU 级 AI 超算网络在故障中继续训练</div></div><div class="info-2"><div class="info-item-1"> 本文改写自 OpenAI 官方工程博客《Supercomputer networking to accelerate large scale AI training》与论文《Resilient AI Supercomputer Networking using MRC and SRv6》。目标是用博客化的方式解释：为什么大规模 AI 训练需要新的网络协议，MRC 如何与多平面拓扑、SRv6 源路由一起，把“网络故障”从训练中断事件变成可被系统自动绕开的背景噪声。  论文链接：Resilient AI Supercomputer Networking using MRC and SRv6 问题不是平均带宽，而是最慢那一次通信在同步预训练中，成千上万甚至十万级 GPU 按训练 step 锁步推进。每个 step 中，GPU 之间要执行数据并行、张量并行、流水线并行、专家并行等多种通信。理想状态下，通信被尽量隐藏在计算之后；但现实里，只要某一次传输成为“长尾”，整个 step 都可能被拖慢。 这也是大规模训练网络最棘手的地方：平均吞吐量很高并不够，最慢的那条路径、最晚到达的那个包，才...</div></div></div></a><a class="pagination-related" href="/posts/deffa08e.html" title="RTX4090P2P与GDR解锁指南"><img class="cover" src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/UgQr/3840X1145/cover11.jpg" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-09-05</div><div class="info-item-2">RTX4090P2P与GDR解锁指南</div></div><div class="info-2"><div class="info-item-1"> 适用范围：Ubuntu 22.04、RTX 4090、NVIDIA 595.71.05 open 驱动、CUDA 13、NCCL 2.31.x，以及 ConnectX-6&#x2F;7 RoCE 网络。 本文依据本机 /home/antl/ncu 中的补丁驱动、NCCL Tests 和实验报告整理。P2P 与 GDR 均属于非官方改造，不受 NVIDIA 支持。驱动安装或切换会中断所有 GPU 任务，并需要重启。  1. 先理解 P2P 与 GDRP2P 和 GDR 解决的是两类不同问题：    功能 数据路径 主要用途 本机实现方式    PCIe P2P GPU 显存直接访问另一张 GPU 显存 单机多卡 NCCL、DDP、TP 社区补丁版 NVIDIA open 内核模块   GPUDirect RDMA（GDR） RNIC 直接 DMA 到&#x2F;从 GPU 显存 跨节点 IB&#x2F;RoCE 通信 NV503C 注册 shim + 补丁 NCCL   正确顺序是：先完成 P2P，再配置 GDR。P2P 成功不等于 GDR 成功；nvidia_peermem 已...</div></div></div></a><a class="pagination-related" href="/posts/f0f97cc2.html" title="Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录"><img class="cover" src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/KOGS/1600X577/cover10.jpg" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-09-03</div><div class="info-item-2">Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录</div></div><div class="info-2"><div class="info-item-1">经过一系列的测试和压测，最终终于测试出一套可以稳定运行且性能不劣化的配置方案。 服务：qwen38-27b-fp8，Docker 镜像 vllm&#x2F;vllm-openai:v0.27.1，4090 * 2张 结论先行当前部署以现有 FP8 启动参数为基准，采用 TP2、完整 262144 上下文、FP8 KV cache、最多 4 个并发请求，并保留图片输入能力。最新实测结果：    配置 并发 输入&#x2F;输出 token 输出吞吐 TTFT P50 TPOT P50 结果    当前最终配置（MTP3、balanced、0.92、8192、图片上限 786432 像素） 1 512&#x2F;2048 99.54 tok&#x2F;s 185.36 ms 9.96 ms 稳定，3&#x2F;3 成功   当前最终配置 4 512&#x2F;1024 283.04 tok&#x2F;s（aggregate） 634.87 ms 11.47 ms 稳定，8&#x2F;8 成功   历史 MTP3 interactivity（条件不同） 8 512&#x2F;1024 ...</div></div></div></a><a class="pagination-related" href="/posts/24f50170.html" title="Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录"><img class="cover" src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/I7Xo/3840X2160/cover06.png" alt="cover" loading='lazy'><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="fas fa-history fa-fw"></i> 2026-06-10</div><div class="info-item-2">Ubuntu 24 + Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 记录</div></div><div class="info-2"><div class="info-item-1">本文记录在 Ubuntu 24 Desktop 系统上，使用 Docker + vLLM 部署 Qwen3.6-35B-A3B-FP8 大模型的完整流程。测试硬件为 4 张 RTX 4090 24GB，宿主机 NVIDIA 驱动版本为 595.71.05；本安装记录仅在此平台上经过验证，其余平台请按照自身需求调整策略。 本文目标是形成一套可复现的部署教程，因此只保留核心步骤，省略无意义的试错过程。 环境说明本次部署环境如下： 1234567操作系统：Ubuntu 24 Desktop显卡：4 × NVIDIA RTX 4090 24GBNVIDIA 驱动：595.71.05部署方式：Docker + vLLM OpenAI API Server模型：Qwen/Qwen3.6-35B-A3B-FP8模型存放目录：~/model服务端口：8000  由于 4 张 4090 总显存为 96GB，推荐优先使用 FP8 版本模型，即： 1Qwen/Qwen3.6-35B-A3B-FP8  不建议一开始直接部署 BF16 原版，因为 35B BF16 权重和 KV Cache 会带来更大的显...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/mango_avatar.png" onerror="this.onerror=null;this.src='/img/67-meme-67.gif'" alt="avatar"/ loading='lazy'></div><div class="author-info-name">Mango</div><div class="author-info-description">给时光以生命，给岁月以文明</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">35</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Mango03111" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:yixuanhao_xidian@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #24292e;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">欢迎来到Big Mango的空间！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E6%81%A2%E5%A4%8D%E5%90%8E%E7%9A%84%E7%9B%AE%E6%A0%87%E7%8A%B6%E6%80%81"><span class="toc-number">1.</span> <span class="toc-text">1. 恢复后的目标状态</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E6%81%A2%E5%A4%8D%E5%89%8D%E5%87%86%E5%A4%87"><span class="toc-number">2.</span> <span class="toc-text">2. 恢复前准备</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-1-%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4%E7%BB%B4%E6%8A%A4%E7%AA%97%E5%8F%A3%E5%B9%B6%E5%81%9C%E6%AD%A2%E4%BB%BB%E5%8A%A1"><span class="toc-number">2.1.</span> <span class="toc-text">第 1 步：确认维护窗口并停止任务</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-2-%E6%AD%A5%EF%BC%9A%E4%BF%9D%E5%AD%98%E7%8E%B0%E7%8A%B6"><span class="toc-number">2.2.</span> <span class="toc-text">第 2 步：保存现状</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-3-%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4%E5%AE%98%E6%96%B9%E7%B2%BE%E7%A1%AE%E7%89%88%E6%9C%AC%E4%BB%8D%E5%8F%AF%E8%8E%B7%E5%BE%97"><span class="toc-number">2.3.</span> <span class="toc-text">第 3 步：确认官方精确版本仍可获得</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-4-%E6%AD%A5%EF%BC%9A%E9%A2%84%E6%BC%94%E5%8C%85%E6%93%8D%E4%BD%9C"><span class="toc-number">2.4.</span> <span class="toc-text">第 4 步：预演包操作</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E7%AC%AC%E4%B8%80%E9%83%A8%E5%88%86%EF%BC%9A%E6%92%A4%E9%94%80-GDR-%E7%94%A8%E6%88%B7%E6%80%81%E6%94%B9%E9%80%A0"><span class="toc-number">3.</span> <span class="toc-text">3. 第一部分：撤销 GDR 用户态改造</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-1-%E6%AD%A5%EF%BC%9A%E5%AE%9A%E4%BD%8D%E6%89%80%E6%9C%89-GDR-%E6%B3%A8%E5%85%A5%E7%82%B9"><span class="toc-number">3.1.</span> <span class="toc-text">第 1 步：定位所有 GDR 注入点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-2-%E6%AD%A5%EF%BC%9A%E4%BB%8E%E4%B8%9A%E5%8A%A1%E5%90%AF%E5%8A%A8%E9%85%8D%E7%BD%AE%E4%B8%AD%E7%A7%BB%E9%99%A4%E4%BB%A5%E4%B8%8B%E8%AE%BE%E7%BD%AE"><span class="toc-number">3.2.</span> <span class="toc-text">第 2 步：从业务启动配置中移除以下设置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-3-%E6%AD%A5%EF%BC%9A%E6%81%A2%E5%A4%8D%E5%AE%98%E6%96%B9-NCCL"><span class="toc-number">3.3.</span> <span class="toc-text">第 3 步：恢复官方 NCCL</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-4-%E6%AD%A5%EF%BC%9A%E9%AA%8C%E8%AF%81%E6%96%B0%E8%BF%9B%E7%A8%8B%E4%B8%8D%E4%BC%9A%E5%86%8D%E6%B3%A8%E5%85%A5-shim"><span class="toc-number">3.4.</span> <span class="toc-text">第 4 步：验证新进程不会再注入 shim</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E7%AC%AC%E4%BA%8C%E9%83%A8%E5%88%86%EF%BC%9A%E6%92%A4%E9%94%80-P2P-%E8%A1%A5%E4%B8%81%E9%A9%B1%E5%8A%A8"><span class="toc-number">4.</span> <span class="toc-text">4. 第二部分：撤销 P2P 补丁驱动</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-1-%E6%AD%A5%EF%BC%9A%E8%A7%A3%E9%99%A4%E7%9B%B8%E5%85%B3-hold"><span class="toc-number">4.1.</span> <span class="toc-text">第 1 步：解除相关 hold</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-2-%E6%AD%A5%EF%BC%9A%E7%A7%BB%E9%99%A4%E8%A1%A5%E4%B8%81-DKMS-%E5%8C%85"><span class="toc-number">4.2.</span> <span class="toc-text">第 2 步：移除补丁 DKMS 包</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-3-%E6%AD%A5%EF%BC%9A%E5%AE%89%E8%A3%85%E5%90%8C%E7%89%88%E6%9C%AC-NVIDIA-%E5%AE%98%E6%96%B9-open-DKMS"><span class="toc-number">4.3.</span> <span class="toc-text">第 3 步：安装同版本 NVIDIA 官方 open DKMS</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-4-%E6%AD%A5%EF%BC%9A%E6%A3%80%E6%9F%A5%E5%AE%98%E6%96%B9-DKMS-%E6%9E%84%E5%BB%BA"><span class="toc-number">4.4.</span> <span class="toc-text">第 4 步：检查官方 DKMS 构建</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-5-%E6%AD%A5%EF%BC%9A%E6%9B%B4%E6%96%B0-initramfs-%E5%B9%B6%E9%87%8D%E5%90%AF"><span class="toc-number">4.5.</span> <span class="toc-text">第 5 步：更新 initramfs 并重启</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E9%87%8D%E5%90%AF%E5%90%8E%E7%9A%84%E5%AE%98%E6%96%B9%E9%A9%B1%E5%8A%A8%E9%AA%8C%E6%94%B6"><span class="toc-number">5.</span> <span class="toc-text">5. 重启后的官方驱动验收</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-1-%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4%E9%A9%B1%E5%8A%A8%E5%92%8C-DKMS-%E6%9D%A5%E6%BA%90"><span class="toc-number">5.1.</span> <span class="toc-text">第 1 步：确认驱动和 DKMS 来源</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-2-%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4-P2P-%E8%A1%A5%E4%B8%81%E5%B7%B2%E5%A4%B1%E6%95%88"><span class="toc-number">5.2.</span> <span class="toc-text">第 2 步：确认 P2P 补丁已失效</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-3-%E6%AD%A5%EF%BC%9A%E7%A1%AE%E8%AE%A4-GDR-shim-%E5%B7%B2%E5%A4%B1%E6%95%88"><span class="toc-number">5.3.</span> <span class="toc-text">第 3 步：确认 GDR shim 已失效</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-4-%E6%AD%A5%EF%BC%9A%E6%A3%80%E6%9F%A5%E7%B3%BB%E7%BB%9F%E5%81%A5%E5%BA%B7"><span class="toc-number">5.4.</span> <span class="toc-text">第 4 步：检查系统健康</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E6%81%A2%E5%A4%8D%E7%89%88%E6%9C%AC-hold"><span class="toc-number">6.</span> <span class="toc-text">6. 恢复版本 hold</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E5%8F%AF%E9%80%89%E6%B8%85%E7%90%86"><span class="toc-number">7.</span> <span class="toc-text">7. 可选清理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E5%A6%82%E6%9E%9C%E8%A6%81%E5%8D%87%E7%BA%A7%E5%88%B0%E6%96%B0%E7%9A%84%E5%AE%98%E6%96%B9%E9%A9%B1%E5%8A%A8%E5%88%86%E6%94%AF"><span class="toc-number">8.</span> <span class="toc-text">8. 如果要升级到新的官方驱动分支</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D"><span class="toc-number">9.</span> <span class="toc-text">9. 故障恢复</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%87%8D%E5%90%AF%E5%90%8E-nvidia-smi-%E5%A4%B1%E8%B4%A5"><span class="toc-number">9.1.</span> <span class="toc-text">重启后 nvidia-smi 失败</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%B3%BB%E7%BB%9F%E9%87%8C%E5%90%8C%E6%97%B6%E5%87%BA%E7%8E%B0%E4%B8%A4%E4%B8%AA-NVIDIA-DKMS-%E5%90%8D%E7%A7%B0"><span class="toc-number">9.2.</span> <span class="toc-text">系统里同时出现两个 NVIDIA DKMS 名称</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#apt-%E5%9B%A0-hold-%E6%88%96%E7%89%88%E6%9C%AC%E4%BE%9D%E8%B5%96%E6%8B%92%E7%BB%9D%E6%93%8D%E4%BD%9C"><span class="toc-number">9.3.</span> <span class="toc-text">apt 因 hold 或版本依赖拒绝操作</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-%E6%9C%80%E7%BB%88%E9%AA%8C%E6%94%B6%E6%B8%85%E5%8D%95"><span class="toc-number">10.</span> <span class="toc-text">10. 最终验收清单</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-%E6%9C%AC%E6%9C%BA%E6%81%A2%E5%A4%8D%E5%8F%82%E8%80%83%E7%8A%B6%E6%80%81"><span class="toc-number">11.</span> <span class="toc-text">11. 本机恢复参考状态</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/posts/21e19566.html" title="RTX4090P2P与GDR恢复NVIDIA官方版本指南"><img src="https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/yCWh/2560X1440/cover04.png" onerror="this.onerror=null;this.src='/img/4041.png'" alt="RTX4090P2P与GDR恢复NVIDIA官方版本指南"/ loading='lazy'></a><div class="content"><a class="title" href="/posts/21e19566.html" title="RTX4090P2P与GDR恢复NVIDIA官方版本指南">RTX4090P2P与GDR恢复NVIDIA官方版本指南</a><time datetime="2026-09-05T15:45:30.000Z" title="发表于 2026-09-05 23:45:30">2026-09-05</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/deffa08e.html" title="RTX4090P2P与GDR解锁指南"><img src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/UgQr/3840X1145/cover11.jpg" onerror="this.onerror=null;this.src='/img/4041.png'" alt="RTX4090P2P与GDR解锁指南"/ loading='lazy'></a><div class="content"><a class="title" href="/posts/deffa08e.html" title="RTX4090P2P与GDR解锁指南">RTX4090P2P与GDR解锁指南</a><time datetime="2026-09-05T15:42:39.000Z" title="发表于 2026-09-05 23:42:39">2026-09-05</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/f0f97cc2.html" title="Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录"><img src="https://img.pagehost.cn/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260617/KOGS/1600X577/cover10.jpg" onerror="this.onerror=null;this.src='/img/4041.png'" alt="Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录"/ loading='lazy'></a><div class="content"><a class="title" href="/posts/f0f97cc2.html" title="Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录">Qwen3.8-27B-FP8-vLLM-双卡4090推理部署优化记录</a><time datetime="2026-09-01T08:47:51.000Z" title="发表于 2026-09-01 16:47:51">2026-09-01</time></div></div></div></div></div></div></main><footer id="footer" style="background: transparent;"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Mango</span><span class="framework-info"><span>框架 </span><a href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.2</a></span></div><div class="footer_custom_text"><p><a style="margin-inline:5px" target="_blank" href="https://github.com/"><img src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&logo=GitHub" title="本站项目由Github托管" loading='lazy'></a><a style="margin-inline:5px" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&logo=Claris" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可" loading='lazy'></a></p></div><script type="text/javascript" id="maid-script" src="https://unpkg.com/mermaid@undefined/dist/mermaid.min.js?v=undefined"></script><script>if (window.mermaid) {
+  var options = JSON.parse(document.getElementById('maid-script').getAttribute('mermaidoptioins'));
+  mermaid.initialize(options);
+}</script></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button><button id="go-down" type="button" title="直达底部" onclick="btf.scrollToDest(document.body.scrollHeight, 500)"><i class="fas fa-arrow-down"></i></button><button id="auto-scroll-btn" type="button" title="自动向下滚动"><i class="fas fa-rotate-right"></i></button></div></div><div><script src="/js/utils.js?v=5.5.2"></script><script src="/js/main.js?v=5.5.2"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const config = mermaidSrc.dataset.config ? JSON.parse(mermaidSrc.dataset.config) : {}
+      if (!config.theme) {
+        config.theme = theme
+      }
+      const mermaidThemeConfig = `%%{init: ${JSON.stringify(config)}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (false) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async src="/js/holiday-popup.js" data-pjax></script><script async src="/js/life-counter.js" data-pjax></script><script async src="/js/auto-scroll.js" data-pjax></script><script defer src="/js/album-waterfall.js"></script><script defer src="/js/home-stars.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@0.2.8/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: false,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => {
+      try {
+        fn()
+      } catch (err) {
+        console.debug('Pjax callback failed:', err)
+      }
+    })
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      const usePjax = true
+      true
+        ? (usePjax ? pjax.loadUrl('/404.html') : window.location.href = '/404.html')
+        : window.location.href = e.request.responseURL
+    }
+  })
+})()</script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.2"></script></div></div><!-- hexo injector body_end start --> <script data-pjax>if(document.getElementById('recent-posts') && (location.pathname ==='/'|| '/' ==='all')){
+    var parent = document.getElementById('recent-posts');
+    var child = '<div class="recent-post-item" style="width:100%;height: auto"><div id="catalog_magnet"><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/教程/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🏫 Mango 教程集合 (11)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/学习笔记/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">📖 Mango 学习笔记 (4)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/算法/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🧠 Mango 算法笔记 (2)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/计算机网络/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">💻 计算机网络 (7)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/梦啥说啥/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">💡 梦啥说啥 (6)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><div class="magnet_item"><a class="magnet_link" href="https://superbigmango.top/categories/音乐/"><div class="magnet_link_context" style=""><span style="font-weight:500;flex:1">🎸 Mango 音乐小屋 (2)</span><span style="padding:0px 4px;border-radius: 8px;"><i class="fas fa-arrow-circle-right"></i></span></div></a></div><a class="magnet_link_more"  href="https://superbigmango.top/categories" style="flex:1;text-align: center;margin-bottom: 10px;">查看更多...</a></div></div>';
+    console.log('已挂载magnet')
+    parent.insertAdjacentHTML("afterbegin",child)}
+     </script><style>#catalog_magnet{flex-wrap: wrap;display: flex;width:100%;justify-content:space-between;padding: 10px 10px 0 10px;align-content: flex-start;}.magnet_item{flex-basis: calc(33.333333333333336% - 5px);background: #f2f2f2;margin-bottom: 10px;border-radius: 8px;transition: all 0.2s ease-in-out;}.magnet_item:hover{background: #792090}.magnet_link_more{color:#555}.magnet_link{color:black}.magnet_link:hover{color:white}@media screen and (max-width: 600px) {.magnet_item {flex-basis: 100%;}}.magnet_link_context{display:flex;padding: 10px;font-size:16px;transition: all 0.2s ease-in-out;}.magnet_link_context:hover{padding: 10px 20px;}</style>
+    <style></style><div class="js-pjax"><script async="async">var arr = document.getElementsByClassName('recent-post-item');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeInUp');
+    arr[i].setAttribute('data-wow-duration', '600ms');
+    arr[i].setAttribute('data-wow-delay', '50ms');
+    arr[i].setAttribute('data-wow-offset', '50');
+    arr[i].setAttribute('data-wow-iteration', '1');
+  }</script><script async="async">var arr = document.getElementsByClassName('aside-content');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeInUp');
+    arr[i].setAttribute('data-wow-duration', '450ms');
+    arr[i].setAttribute('data-wow-delay', '50ms');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script><script async="async">var arr = document.getElementsByClassName('container post-content');
+for(var i = 0;i<arr.length;i++){
+    arr[i].classList.add('wow');
+    arr[i].classList.add('animate__fadeIn');
+    arr[i].setAttribute('data-wow-duration', '1200ms');
+    arr[i].setAttribute('data-wow-delay', '');
+    arr[i].setAttribute('data-wow-offset', '');
+    arr[i].setAttribute('data-wow-iteration', '');
+  }</script></div><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow.min.js"></script><script defer src="https://npm.elemecdn.com/hexo-butterfly-wowjs/lib/wow_init.js"></script><!-- hexo injector body_end end --></body></html>
