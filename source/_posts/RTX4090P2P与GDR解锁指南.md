@@ -16,7 +16,7 @@ cover:
 >
 > 本文依据本机 `/home/antl/ncu` 中的补丁驱动、NCCL Tests 和实验报告整理。P2P 与 GDR 均属于非官方改造，不受 NVIDIA 支持。驱动安装或切换会中断所有 GPU 任务，并需要重启。
 
-## 1. 先理解 P2P 与 GDR
+## 先理解 P2P 与 GDR
 
 P2P 和 GDR 解决的是两类不同问题：
 
@@ -27,7 +27,7 @@ P2P 和 GDR 解决的是两类不同问题：
 
 正确顺序是：**先完成 P2P，再配置 GDR**。P2P 成功不等于 GDR 成功；`nvidia_peermem` 已加载也不等于 GeForce 的显存已经能被 RNIC 注册。
 
-## 2. 已验证的软件组合
+## 已验证的软件组合
 
 本机资料记录的成功组合如下：
 
@@ -46,7 +46,7 @@ P2P 和 GDR 解决的是两类不同问题：
 
 > 状态提示：截至 2026-09-04，本机当前加载的是官方 `nvidia/595.71.05` DKMS，而不是补丁 DKMS。本文描述的是重新部署补丁的流程，不代表当前机器已经处于解锁状态。
 
-## 3. 操作前检查与备份
+## 操作前检查与备份
 
 ### 第 1 步：安排维护窗口
 
@@ -103,7 +103,7 @@ sha256sum "$P2P_DEB"
 
 ---
 
-## 4. 第一部分：解锁 RTX 4090 PCIe P2P
+## 第一部分：解锁 RTX 4090 PCIe P2P
 
 ### 第 1 步：确认 595.71.05 用户态组件齐全
 
@@ -252,9 +252,9 @@ BAR1 较小时，保持两个 REGISTER 变量为 `0`，避免 NCCL 用户缓冲�
 
 ---
 
-## 5. 第二部分：解锁 RTX 4090 GPUDirect RDMA
+## 第二部分：解锁 RTX 4090 GPUDirect RDMA
 
-### 5.1 重要限制
+### 重要限制
 
 在本机 4090 + 595.71.05 上，以下两条官方路径都已被实验确认不可用：
 
@@ -266,7 +266,7 @@ BAR1 较小时，保持两个 REGISTER 变量为 `0`，避免 NCCL 用户缓冲�
 1. P2P 补丁驱动提供 NV503C third-party P2P 能力；
 2. 用户态 shim 精确跟踪 UVM/RM 映射，并在 RDMA 注册前执行 `REGISTER_VA_SPACE` 和 `REGISTER_VIDMEM`；NCCL 还需配套的 4090 GDR 能力探测补丁。
 
-### 5.2 先做材料完整性门禁
+### 先做材料完整性门禁
 
 当前 `ncu` 中保存了最终报告和完整历史会话，但**没有独立保存最终版 `libgdrshim.c`、`libgdrshim.so` 和补丁 NCCL 目录**。在从已验证环境或备份找回这些产物之前，不要尝试凭报告片段重新拼装生产 shim。
 
@@ -295,7 +295,7 @@ test -r "$GDR_DIR/nccl-gdr/lib/libnccl.so.2"
 
 任一步失败都应停止。历史会话压缩包只能作为审计和恢复线索，不能代替经过校验的最终源码产物。
 
-### 5.3 检查 RDMA 基础环境
+### 检查 RDMA 基础环境
 
 #### 第 1 步：检查驱动与设备
 
@@ -347,7 +347,7 @@ sudo ip neigh replace <对端IP> lladdr <对端MAC> \
 
 不要把旧报告里的 MAC 地址固化到启动脚本。
 
-### 5.4 先用 perftest 验证 GDR 数据面
+### 先用 perftest 验证 GDR 数据面
 
 `/home/antl/perftest-gdr` 已集成 NV503C 注册路径。两端或两个物理环回端口准备好后，先在接收端运行：
 
@@ -377,9 +377,9 @@ GPUDIRECT_GPU=0 ./ib_write_bw \
 - 无 timeout、retry、sequence error；
 - `nvidia-smi dmon` 可观察到显著 PCIe RX/TX 流量。
 
-### 5.5 部署 NCCL GDR shim
+### 部署 NCCL GDR shim
 
-只有在 5.2 的产物校验通过后执行。
+只有在“先做材料完整性门禁”一节的产物校验通过后执行。
 
 #### 第 1 步：在隔离目录部署，不覆盖系统库
 
@@ -442,7 +442,7 @@ GDR 1
 
 旧双容器最终有效结果：1 GiB AllReduce 的 GDR bus bandwidth 为 `5.88 GB/s`，非 GDR 为 `5.09 GB/s`，且两组均为 0 wrong。
 
-## 6. 业务运行建议
+## 业务运行建议
 
 把 P2P/GDR 配置写进具体任务或容器的启动脚本，而不是全局环境：
 
@@ -462,7 +462,7 @@ env \
 
 容器还需要映射 GPU、RDMA character devices 和相应网络接口。不要仅为了 GDR 使用 `--privileged`；应按实际需要授权 `/dev/nvidia*`、`/dev/infiniband/*` 和网络能力。
 
-## 7. 常见问题
+## 常见问题
 
 ### P2P 矩阵是 OK，但 NCCL 仍走 SHM
 
@@ -497,7 +497,7 @@ journalctl -k -b --no-pager | grep -Ei 'NVRM|Xid|nvidia'
 
 这是本机 RTX 4090 官方注册路径的已知表现。确认使用的是经过校验的 NV503C shim；加载 peermem 本身不能绕过 GeForce 的 RM 限制。
 
-## 8. 验收清单
+## 验收清单
 
 - [ ] NVIDIA 内核模块、用户态库和固件都是 595.71.05；
 - [ ] `dkms status` 只有目标补丁驱动提供 NVIDIA 模块；
@@ -510,7 +510,7 @@ journalctl -k -b --no-pager | grep -Ei 'NVRM|Xid|nvidia'
 - [ ] GDR NCCL 测试返回码 0、所有尺寸 0 wrong；
 - [ ] 已保存安装版本、命令、日志和哈希，能够按恢复指南回退。
 
-## 9. 本机参考资料
+## 本机参考资料
 
 - `../P2P and GDR Log/4090-p2p-enable-plan(1).md`
 - `../P2P and GDR Log/GDR-卡间RDMA-最终报告.md`
