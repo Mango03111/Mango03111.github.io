@@ -1,5 +1,5 @@
 ---
-title: RTX4090P2P与GDR恢复NVIDIA官方版本指南
+title: RTX 4090 P2P与GDR恢复NVIDIA官方版本指南
 Author: Mango
 top_img: transparent
 tags:

@@ -1,5 +1,5 @@
 ---
-title: RTX4090P2P与GDR解锁指南
+title: RTX 4090 P2P与GDR解锁指南
 Author: Mango
 top_img: transparent
 tags:
