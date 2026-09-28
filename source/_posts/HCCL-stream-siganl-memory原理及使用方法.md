@@ -9,7 +9,7 @@ tags:
   - Research
   - AI Infra
 categories:
-  - 计算机网络
+  - AIInfra
 abbrlink: 7b15d684
 date: 2026-05-29 14:04:18
 cover:

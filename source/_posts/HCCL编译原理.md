@@ -6,7 +6,7 @@ tags:
   - Code
   - AI Infra
 categories:
-  - 计算机网络
+  - AIInfra
 abbrlink: "58974538"
 date: 2026-01-26 17:45:00
 cover: https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260401/PFyM/2048X1152/dc02.jpg

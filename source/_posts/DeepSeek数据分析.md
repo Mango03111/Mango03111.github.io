@@ -7,7 +7,7 @@ tags:
   - Algorithm
   - Code
 categories:
-  - 计算机网络
+  - AIInfra
 cover: >-
   https://a.tuchuangyun.top/autoupload/sGsLTdNbILw_FMc-EyyWvNiO_OyvX7mIgxFBfDMDErs/20260409/N3qH/1200X675/image.png
 abbrlink: fa9ffbc3
